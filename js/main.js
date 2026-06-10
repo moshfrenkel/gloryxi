@@ -65,7 +65,7 @@ function flagSrc(country) {
   const t = S.teams[country];
   if (!t) return '';
   if (t.flagFile) return './flags/' + t.flagFile;
-  return 'https://flagcdn.com/' + t.iso2 + '.svg';
+  return './flags/' + t.iso2 + '.svg';   // all flags self-hosted — no third-party requests
 }
 
 function makeFlag(country, cls) {
