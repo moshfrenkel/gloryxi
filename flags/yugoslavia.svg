@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 3">
+  <rect width="5" height="1" y="0" fill="#0C3FA4"/>
+  <rect width="5" height="1" y="1" fill="#FFFFFF"/>
+  <rect width="5" height="1" y="2" fill="#DD0000"/>
+  <!-- Red star outline -->
+  <polygon points="2.5,0.55 2.66,1.05 3.18,1.05 2.76,1.35 2.92,1.85 2.5,1.55 2.08,1.85 2.24,1.35 1.82,1.05 2.34,1.05" fill="#DD0000" stroke="#FFFF00" stroke-width="0.05"/>
+</svg>

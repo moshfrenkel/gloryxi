@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#101010">
+  <title>GloryXI — Build Your All-Time XI</title>
+  <meta name="description" content="Draw a nation and a year, build your all-time XI from 1930 to 2026, then watch the results clatter in.">
+  <meta property="og:title" content="GloryXI — Can You Win It All in 2026?">
+  <meta property="og:description" content="Build your all-time XI from every nation and every year since 1930 — then survive a full simulated tournament.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://moshfrenkel.github.io/gloryxi/">
+  <meta property="og:image" content="https://moshfrenkel.github.io/gloryxi/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101010'/%3E%3Ctext x='16' y='24' text-anchor='middle' font-family='Arial Narrow,Arial' font-weight='bold' font-size='18' fill='%23FF2D00'%3EXI%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<div id="loading" class="screen active">
+  <div class="load-mark">XI</div>
+  <div class="load-cap">LOADING SQUADS</div>
+</div>
+
+<!-- S1 — THE SLEEVE -->
+<div id="s1" class="screen">
+  <div class="reg-marks" aria-hidden="true"></div>
+  <div class="vinyl-rings" aria-hidden="true"></div>
+  <div class="s1-spine t-cap" aria-hidden="true">EVERY NATION · EVERY YEAR · 1930—2026</div>
+  <div class="s1-stack">
+    <svg class="trophy-hero" viewBox="0 0 200 250" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Trophy">
+      <!-- blueprint construction lines behind the cup -->
+      <circle cx="100" cy="70" r="62" stroke="rgba(237,232,223,0.22)" stroke-width="1"/>
+      <line x1="100" y1="2" x2="100" y2="248" stroke="rgba(237,232,223,0.14)" stroke-width="1"/>
+      <line x1="6" y1="70" x2="194" y2="70" stroke="rgba(237,232,223,0.14)" stroke-width="1"/>
+      <!-- handles -->
+      <path d="M38 32 Q14 36 18 62 Q22 86 52 96" stroke="#F5C518" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M162 32 Q186 36 182 62 Q178 86 148 96" stroke="#F5C518" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <!-- bowl -->
+      <path d="M44 24 L156 24 Q156 92 100 114 Q44 92 44 24 Z" fill="#F5C518"/>
+      <path d="M100 114 Q44 92 44 24 L72 24 Q72 92 100 114 Z" fill="rgba(16,16,16,0.18)"/>
+      <rect x="40" y="18" width="120" height="8" fill="#FF2D00"/>
+      <!-- stem + base -->
+      <path d="M92 114 L108 114 L104 168 L96 168 Z" fill="#F5C518"/>
+      <rect x="74" y="168" width="52" height="14" fill="#F5C518"/>
+      <rect x="62" y="182" width="76" height="20" fill="#F5C518"/>
+      <rect x="62" y="182" width="76" height="20" fill="rgba(16,16,16,0.12)"/>
+      <text x="100" y="197" text-anchor="middle" font-family="Arial Narrow, Arial" font-weight="bold" font-size="15" fill="#101010">2026</text>
+      <!-- star -->
+      <polygon points="100,52 105,66 120,66 108,75 112,89 100,80 88,89 92,75 80,66 95,66" fill="#101010" opacity="0.85"/>
+    </svg>
+    <div class="s1-q">CAN YOU WIN<br>IT ALL IN 2026?</div>
+    <div class="s1-logo">GLORY<span class="s1-logo-xi">XI</span></div>
+    <div class="s1-rule" aria-hidden="true"></div>
+    <div class="s1-tag t-cap">BUILD YOUR ALL-TIME XI.<br>SURVIVE THE TOURNAMENT.</div>
+  </div>
+  <button id="btn-start" class="slab slab-hot">KICK OFF</button>
+  <div class="footer-note t-cap">Not affiliated with FIFA · Data: Fjelstul World Cup Database (CC-BY-SA 4.0) · No player photos</div>
+</div>
+
+<!-- S0 — HALL OF LEGENDS (captain's pick) -->
+<div id="s0" class="screen">
+  <div class="status-strip">
+    <div class="t-cap legend-kicker">PICK 1 OF 11 · YOUR CAPTAIN</div>
+  </div>
+  <div class="legend-head">
+    <div class="legend-title">HALL OF<br>LEGENDS</div>
+    <div class="t-cap legend-sub">CHOOSE ONE ALL-TIME GREAT — ANY ERA, ANY POSITION.<br>HIS NATION IS THEN YOURS FOR GOOD.</div>
+  </div>
+  <div id="legend-list" role="list" aria-label="Legends"></div>
+  <button id="legend-skip" class="board-strip">
+    <span class="t-cap">SKIP — STRAIGHT TO THE DRAW</span>
+    <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M2 1 L8 5 L2 9" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
+  </button>
+</div>
+
+<!-- S2 — THE DRAW (auto split-flap) -->
+<div id="s2" class="screen">
+  <div class="s2-spine t-cap" aria-hidden="true">THE DRAW</div>
+  <div class="s2-round t-cap" id="s2-round"></div>
+  <div class="spin-zone">
+    <div class="spin-flag-frame">
+      <img id="spin-flag" alt="" draggable="false">
+    </div>
+    <div class="spin-year-frame">
+      <div id="spin-year">––––</div>
+    </div>
+  </div>
+  <div id="draw-header" class="draw-stamp" aria-live="assertive"></div>
+  <div class="skip-row">
+    <button id="btn-skip-team" class="skip-box t-cap">NEW NATION</button>
+    <button id="btn-skip-year" class="skip-box t-cap">NEW YEAR</button>
+  </div>
+</div>
+
+<!-- S3 — SQUAD SHEET -->
+<div id="s3" class="screen">
+  <div class="status-strip">
+    <div id="progress-pips" aria-label="Draft progress"></div>
+    <div id="round-label" class="t-cap" aria-live="polite"></div>
+  </div>
+  <div class="squad-spine t-cap" id="squad-spine" aria-hidden="true"></div>
+  <div class="squad-head">
+    <img id="squad-flag" class="squad-flag" alt="" draggable="false">
+    <div id="squad-title" class="squad-title"></div>
+    <div class="skip-row skip-row-s3">
+      <button id="btn-skip-team-s3" class="skip-box t-cap">NEW NATION</button>
+      <button id="btn-skip-year-s3" class="skip-box t-cap">NEW YEAR</button>
+    </div>
+  </div>
+  <div id="player-list" role="list" aria-label="Squad"></div>
+  <button id="board-toggle" class="board-strip">
+    <span class="t-cap">THE BOARD</span>
+    <span id="board-count" class="board-count">0/11</span>
+    <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 9 L7 2 L13 9" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
+  </button>
+</div>
+
+<!-- S-JOKER — post-draft surprise -->
+<div id="s-joker" class="screen">
+  <div class="joker-head">
+    <div class="t-cap joker-kicker">SURPRISE — THE JOKER</div>
+    <div class="joker-title">ONE LAST CALL,<br>GAFFER</div>
+    <div class="t-cap joker-sub" id="joker-sub">YOUR XI IS COMPLETE. SWAP ONE PLAYER FOR A FRESH DRAW — OR TRUST YOUR BOARD.</div>
+  </div>
+  <div class="board-pitch joker-pitch">
+    <svg viewBox="0 0 375 520" preserveAspectRatio="none" class="pitch-lines" aria-hidden="true">
+      <rect x="12" y="12" width="351" height="496" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+      <line x1="12" y1="260" x2="363" y2="260" stroke="#FFFFFF" stroke-width="1"/>
+      <circle cx="187.5" cy="260" r="46" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+      <rect x="97" y="12" width="181" height="58" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+      <rect x="97" y="450" width="181" height="58" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+    </svg>
+    <div id="joker-slots"></div>
+  </div>
+  <div class="action-row">
+    <button id="joker-swap" class="slab slab-gold">SWAP ONE</button>
+    <button id="joker-keep" class="slab slab-hot">PLAY</button>
+  </div>
+</div>
+
+<!-- S4 — THE BOARD (overlay) -->
+<div id="s4" class="screen">
+  <div class="board-head">
+    <span class="t-cap">THE BOARD — 4·4·2</span>
+    <span id="board-count-2" class="board-count"></span>
+  </div>
+  <div class="board-pitch">
+    <svg viewBox="0 0 375 520" preserveAspectRatio="none" class="pitch-lines" aria-hidden="true">
+      <rect x="12" y="12" width="351" height="496" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+      <line x1="12" y1="260" x2="363" y2="260" stroke="#EDE8DF" stroke-width="1"/>
+      <circle cx="187.5" cy="260" r="46" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+      <rect x="97" y="12" width="181" height="58" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+      <rect x="97" y="450" width="181" height="58" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+      <rect x="142" y="12" width="91" height="24" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+      <rect x="142" y="484" width="91" height="24" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+    </svg>
+    <div id="board-slots"></div>
+  </div>
+  <button id="board-close" class="board-strip board-strip-close">
+    <span class="t-cap">BACK TO THE SQUAD</span>
+    <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 1 L7 8 L13 1" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
+  </button>
+</div>
+
+<!-- S5 — THE VIDIPRINTER -->
+<div id="s5" class="screen">
+  <div class="s5-head">
+    <div class="t-cap s5-kicker">RESULTS SERVICE</div>
+    <div class="s5-title">THE&nbsp;TOURNAMENT</div>
+  </div>
+  <div id="printer-feed" role="log" aria-live="polite"></div>
+  <button id="btn-next-match" class="slab slab-hot">RUN MATCH 1</button>
+</div>
+
+<!-- S6 — THE BACK COVER -->
+<div id="s6" class="screen">
+  <div class="reg-marks" aria-hidden="true"></div>
+  <div class="verdict-zone">
+    <div class="t-cap verdict-kicker">FINAL RESULT</div>
+    <div id="verdict-stage" class="verdict-stage"></div>
+    <div id="verdict-record" class="verdict-record"></div>
+    <div id="verdict-avg" class="t-cap verdict-avg"></div>
+  </div>
+  <div class="t-cap tracklist-label">YOUR ALL-TIME XI</div>
+  <div class="result-pitch">
+    <svg viewBox="0 0 375 520" preserveAspectRatio="none" class="pitch-lines" aria-hidden="true">
+      <rect x="12" y="12" width="351" height="496" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+      <line x1="12" y1="260" x2="363" y2="260" stroke="#FFFFFF" stroke-width="1.5"/>
+      <circle cx="187.5" cy="260" r="46" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+      <rect x="97" y="12" width="181" height="58" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+      <rect x="97" y="450" width="181" height="58" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+    </svg>
+    <div id="result-slots"></div>
+  </div>
+  <div class="action-row">
+    <button id="btn-share" class="slab slab-hot">SHARE</button>
+    <button id="btn-again" class="slab slab-line">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
