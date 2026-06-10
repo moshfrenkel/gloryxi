@@ -4,13 +4,14 @@
 
 :root {
   --ink:  #101010;
-  --bg:   #1B1610;          /* warm charcoal — lighter than pure ink */
+  --bg:   #211B14;          /* warm charcoal — softer than pure ink */
   --bone: #EDE8DF;
-  --hot:  #FF2D00;
+  --hot:  #2BD4C0;          /* electric teal — the accent (was harsh red) */
+  --warn: #FF9F6E;          /* soft coral — negatives only */
   --gold: #F5C518;
   --grass1: #2F8F4A;
   --grass2: #287D40;
-  --grey: #7A746A;
+  --grey: #8A8378;
   --hair: rgba(237, 232, 223, 0.6);
 }
 
@@ -345,7 +346,7 @@ button:active, .player-row:active, .slot-option:active {
 .feed-line .hot { color: var(--hot); font-weight: 700; }
 .feed-line.faint { color: #9b948a; }
 .feed-line.gold { color: var(--gold); font-weight: 700; }
-.feed-line.alert { color: var(--hot); font-weight: 700; }
+.feed-line.alert { color: var(--warn); font-weight: 700; }
 .feed-line.scorer { color: #9b948a; font-size: 14.5px; }
 .feed-line.verdict {
   color: var(--hot); font-weight: 700; font-size: 19px;
@@ -383,10 +384,10 @@ button:active, .player-row:active, .slot-option:active {
 .tier-good .sp-bar i { background: var(--grass1); }
 .tier-mid .sp-num { color: var(--gold); }
 .tier-mid .sp-bar i { background: var(--gold); }
-.tier-low .sp-num { color: var(--hot); }
-.tier-low .sp-bar i { background: var(--hot); }
+.tier-low .sp-num { color: var(--warn); }
+.tier-low .sp-bar i { background: var(--warn); }
 .sp-label { font-size: 10px; letter-spacing: 0.14em; color: var(--grey); }
-.sp-weakest .sp-label { color: var(--hot); font-weight: 700; }
+.sp-weakest .sp-label { color: var(--warn); font-weight: 700; }
 .sp-opps { margin-top: 14px; border-top: 1px solid rgba(237,232,223,0.18); padding-top: 10px; }
 .sp-opp { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .sp-opp img { width: 24px; height: 16px; object-fit: cover; border: 1px solid var(--hair); }
@@ -398,7 +399,7 @@ button:active, .player-row:active, .slot-option:active {
 }
 .sp-opp-bar { flex: 1; height: 6px; background: rgba(237,232,223,0.13); }
 .sp-opp-bar i { display: block; height: 100%; background: var(--bone); }
-.sp-opp-bar i.stronger { background: var(--hot); }
+.sp-opp-bar i.stronger { background: var(--warn); }
 .sp-opp-e { font-family: 'Courier New', monospace; font-size: 12px; color: var(--grey); width: 38px; text-align: right; }
 
 /* stadium scoreboard per match */
@@ -510,6 +511,25 @@ button:active, .player-row:active, .slot-option:active {
 }
 @keyframes swap-pulse { 50% { transform: scale(1.07); box-shadow: 0 0 0 4px rgba(245,197,24,0.25); } }
 #s-joker .action-row { padding: 12px 18px 16px; }
+
+/* ── name your XI ────────────────────────────────────────── */
+#s-name { justify-content: center; gap: 26px; }
+.name-zone { padding: 0 26px; }
+.name-kicker { color: var(--hot); letter-spacing: 0.22em; }
+.name-title {
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 52px; line-height: 0.95; color: var(--bone); margin: 8px 0 22px;
+}
+.name-input {
+  width: 100%; background: none; border: none;
+  border-bottom: 3px solid var(--hot);
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 30px; color: var(--gold); letter-spacing: 0.04em;
+  padding: 6px 2px 8px; text-transform: uppercase;
+  caret-color: var(--hot); outline: none;
+}
+.name-input::placeholder { color: rgba(237,232,223,0.22); }
+.name-hint { margin-top: 12px; }
 
 /* win flash — celebratory overprint on knockout wins */
 .win-flash {

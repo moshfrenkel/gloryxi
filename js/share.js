@@ -1,7 +1,7 @@
 /* GloryXI share card — TV broadcast lineup graphic, 1080×1350.
    Blueprint pitch, 4-4-2 name plates with ratings, verdict header. */
 
-const INK = '#101010', BONE = '#EDE8DF', HOT = '#FF2D00', GOLD = '#F5C518', GREY = '#8a857c';
+const INK = '#101010', BONE = '#EDE8DF', HOT = '#2BD4C0', GOLD = '#F5C518', GREY = '#8a857c';
 
 const STAGE_VERDICT = {
   GROUP_EXIT: 'OUT — GROUP STAGE', R32: 'OUT — ROUND OF 32', R16: 'OUT — ROUND OF 16',
@@ -33,7 +33,8 @@ async function loadAnton() {
   catch (e) { /* fallback fonts are fine */ }
 }
 
-export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc) {
+export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, teamName) {
+  teamName = (teamName || 'YOUR XI').toUpperCase();
   await loadAnton();
   const W = 1080, H = 1350;
   const cv = document.createElement('canvas');
@@ -50,7 +51,7 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc) {
   x.textAlign = 'left';
   x.fillStyle = champion ? GOLD : HOT;
   x.font = '600 28px "Space Grotesk", sans-serif';
-  x.fillText('G L O R Y X I   ·   F I N A L   R E S U L T', 60, 78);
+  x.fillText(teamName + '   ·   F I N A L   R E S U L T', 60, 78);
   x.fillStyle = champion ? GOLD : BONE;
   x.font = '84px Anton, "Arial Narrow", sans-serif';
   x.fillText(verdict, 60, 165, W - 120);
@@ -117,11 +118,11 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc) {
   x.fillText('AVERAGE RATING  ' + avg, 60, H - 92);
   x.fillStyle = GREY;
   x.font = '24px "Space Grotesk", sans-serif';
-  x.fillText('Every nation · every year · 1930—2026', 60, H - 48);
+  x.fillText('Every nation · every year · 1930—2026', 60, H - 54);
   x.fillStyle = champion ? GOLD : BONE;
   x.font = '600 26px "Space Grotesk", sans-serif';
   x.textAlign = 'right';
-  x.fillText('Build yours ▸ moshfrenkel.github.io/gloryxi', W - 60, H - 48);
+  x.fillText('Build yours ▸ moshfrenkel.github.io/gloryxi', W - 60, H - 92);
   x.textAlign = 'left';
 
   // export
@@ -133,7 +134,7 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc) {
       await navigator.share({
         files: [file],
         title: 'GloryXI',
-        text: 'My all-time XI — ' + verdict + '. Build yours: https://moshfrenkel.github.io/gloryxi/',
+        text: teamName + ' — ' + verdict + '. Build your own all-time XI: https://moshfrenkel.github.io/gloryxi/',
       });
       return;
     } catch (e) { /* cancelled — fall through to download */ }

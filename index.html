@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#101010">
+  <meta name="theme-color" content="#211B14">
   <title>GloryXI — Build Your All-Time XI</title>
   <meta name="description" content="Draw a nation and a year, build your all-time XI from 1930 to 2026, then watch the results clatter in.">
   <meta property="og:title" content="GloryXI — Can You Win It All in 2026?">
@@ -12,7 +12,7 @@
   <meta property="og:url" content="https://moshfrenkel.github.io/gloryxi/">
   <meta property="og:image" content="https://moshfrenkel.github.io/gloryxi/og.png">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101010'/%3E%3Ctext x='16' y='24' text-anchor='middle' font-family='Arial Narrow,Arial' font-weight='bold' font-size='18' fill='%23FF2D00'%3EXI%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101010'/%3E%3Ctext x='16' y='24' text-anchor='middle' font-family='Arial Narrow,Arial' font-weight='bold' font-size='18' fill='%232BD4C0'%3EXI%3C/text%3E%3C/svg%3E">
   <!-- self-hosted fonts — zero third-party requests -->
   <link rel="stylesheet" href="./css/fonts.css">
   <link rel="stylesheet" href="./css/style.css">
@@ -41,7 +41,7 @@
       <!-- bowl -->
       <path d="M44 24 L156 24 Q156 92 100 114 Q44 92 44 24 Z" fill="#F5C518"/>
       <path d="M100 114 Q44 92 44 24 L72 24 Q72 92 100 114 Z" fill="rgba(16,16,16,0.18)"/>
-      <rect x="40" y="18" width="120" height="8" fill="#FF2D00"/>
+      <rect x="40" y="18" width="120" height="8" fill="#2BD4C0"/>
       <!-- stem + base -->
       <path d="M92 114 L108 114 L104 168 L96 168 Z" fill="#F5C518"/>
       <rect x="74" y="168" width="52" height="14" fill="#F5C518"/>
@@ -139,6 +139,18 @@
     <button id="joker-swap" class="slab slab-gold">SWAP ONE</button>
     <button id="joker-keep" class="slab slab-hot">PLAY</button>
   </div>
+</div>
+
+<!-- S-NAME — name your XI -->
+<div id="s-name" class="screen">
+  <div class="name-zone">
+    <div class="t-cap name-kicker">FINAL TOUCH</div>
+    <div class="name-title">NAME<br>YOUR XI</div>
+    <input id="team-name" class="name-input" type="text" maxlength="18" autocomplete="off"
+           autocapitalize="characters" spellcheck="false" placeholder="THE INVINCIBLES">
+    <div class="t-cap name-hint">THIS GOES ON THE SCOREBOARD — AND ON THE SHARE CARD.</div>
+  </div>
+  <button id="btn-name-lock" class="slab slab-hot">LOCK IT IN</button>
 </div>
 
 <!-- S4 — THE BOARD (overlay) -->

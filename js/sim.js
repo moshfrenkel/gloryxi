@@ -185,27 +185,39 @@ export function simulateTournament(xi, field2026) {
     if (Math.random() < 8 / 12) thirds.push(sorted[2]);
   }
 
-  const takeFrom = (pool) => {
-    while (pool.length) {
-      const t = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-      if (t) return t;
-    }
-    return null;
+  // Bracket-realistic opponent selection:
+  // - R32 pairing follows your group rank (winners meet thirds, runners meet runners).
+  // - The deeper the round, the more surviving opponents skew elite (Elo-weighted),
+  //   mirroring a real bracket where favourites converge on the semis.
+  const qualifiers = [
+    ...winners.map(t => ({ t, tier: 'W' })),
+    ...runners.map(t => ({ t, tier: 'R' })),
+    ...thirds.map(t => ({ t, tier: 'T' })),
+  ];
+  const TIER_PREF = {
+    R32: rank === 1 ? { W: 0.3, R: 1.5, T: 6 } : rank === 2 ? { W: 0.6, R: 5, T: 1.5 } : { W: 6, R: 1.5, T: 0.3 },
+    R16: { W: 1, R: 1, T: 0.7 },
+    QF:  { W: 2, R: 1, T: 0.4 },
+    SF:  { W: 3, R: 0.8, T: 0.2 },
+    F:   { W: 4, R: 0.6, T: 0.1 },
   };
+  const ELO_BETA = { R32: 0, R16: 0.35, QF: 0.7, SF: 1.1, F: 1.4 };
 
-  // Bracket-shaped opponent selection per stage:
-  // group winners meet thirds in R32; runners-up meet runners-up; thirds meet winners.
-  // Deeper rounds drift toward group winners.
-  const stagePick = {
-    R32: () => rank === 1 ? (takeFrom(thirds) || takeFrom(runners)) : rank === 2 ? (takeFrom(runners) || takeFrom(thirds)) : (takeFrom(winners) || takeFrom(runners)),
-    R16: () => Math.random() < 0.5 ? (takeFrom(runners) || takeFrom(winners)) : (takeFrom(winners) || takeFrom(runners)),
-    QF:  () => Math.random() < 0.7 ? (takeFrom(winners) || takeFrom(runners)) : (takeFrom(runners) || takeFrom(winners)),
-    SF:  () => takeFrom(winners) || takeFrom(runners) || takeFrom(thirds),
-    F:   () => takeFrom(winners) || takeFrom(runners) || takeFrom(thirds),
+  const pickOpponent = (stage) => {
+    if (!qualifiers.length) return 'Unknown';
+    const pref = TIER_PREF[stage], beta = ELO_BETA[stage];
+    const weights = qualifiers.map(q =>
+      (pref[q.tier] || 1) * Math.exp(beta * ((field2026.strengths[q.t] || 1700) - 1800) / 100));
+    let r = Math.random() * weights.reduce((s, w) => s + w, 0);
+    for (let i = 0; i < qualifiers.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return qualifiers.splice(i, 1)[0].t;
+    }
+    return qualifiers.pop().t;
   };
 
   for (const stage of ['R32', 'R16', 'QF', 'SF', 'F']) {
-    const oppName = stagePick[stage]() || 'Unknown';
+    const oppName = pickOpponent(stage);
     const m = simulateKnockout(userElo, getElo(oppName), players);
     record.gf += m.scoreA; record.ga += m.scoreB;
     if (m.winnerIsA) record.w++;

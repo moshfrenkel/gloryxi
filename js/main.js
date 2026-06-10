@@ -464,6 +464,22 @@ const STAGE_VERDICT = {
 };
 
 function startTournament() {
+  // naming step first — the name follows the team everywhere
+  if (!S.teamName) {
+    show('s-name');
+    setTimeout(() => $('team-name').focus(), 150);
+    return;
+  }
+  runTournament();
+}
+
+function lockTeamName() {
+  const raw = $('team-name').value.trim().toUpperCase().replace(/[<>]/g, '');
+  S.teamName = raw || 'YOUR XI';
+  runTournament();
+}
+
+function runTournament() {
   // build sim XI
   const xiSim = {};
   for (const slot of SLOTS) {
@@ -477,7 +493,7 @@ function startTournament() {
   feed.innerHTML = '';
   addLine('faint', '— RESULTS SERVICE OPEN —');
   const J0 = S.journey;
-  addLine('gold', 'YOU TAKE ' + J0.replaced.toUpperCase() + "'S PLACE — GROUP " + J0.groupKey);
+  addLine('gold', S.teamName + ' TAKES ' + J0.replaced.toUpperCase() + "'S PLACE — GROUP " + J0.groupKey);
 
   // strength report — FIFA-style rating panel, so every defeat is explainable
   const groupOpps = J0.journey.filter(m => m.stage === 'GROUP').map(m => m.opponent);
@@ -576,7 +592,7 @@ function renderStrengthPanel(xiSim, groupOpps) {
   head.className = 'sp-head';
   const hLabel = document.createElement('span');
   hLabel.className = 'sp-title';
-  hLabel.textContent = 'YOUR XI';
+  hLabel.textContent = S.teamName;
   const ovr = document.createElement('span');
   ovr.className = 'sp-ovr';
   ovr.textContent = elo;
@@ -683,7 +699,7 @@ function renderScoreboard(m, stageTag, cb) {
   sAg.textContent = '0';
   scoreBox.append(sFor, dash, sAg);
 
-  row.append(mkSide('YOU', null), scoreBox, mkSide(codeOf(m.opponent), m.opponent));
+  row.append(mkSide(S.teamName.length > 10 ? S.teamName.slice(0, 9) + '…' : S.teamName, null), scoreBox, mkSide(codeOf(m.opponent), m.opponent));
   sb.appendChild(row);
 
   if (m.note) {
@@ -724,7 +740,7 @@ function renderScoreboard(m, stageTag, cb) {
 
 function printGroupTable(J) {
   addLine('faint', '— FINAL TABLE · GROUP ' + J.groupKey + ' —');
-  const name = t => t === 'USER_XI' ? 'YOUR XI' : t.toUpperCase();
+  const name = t => t === 'USER_XI' ? S.teamName : t.toUpperCase();
   J.groupTable.forEach((r, i) => {
     const gd = r.gf - r.ga;
     const line = ' ' + (i + 1) + '  ' + name(r.team).slice(0, 14).padEnd(15) +
@@ -756,6 +772,7 @@ function showResult() {
   $('verdict-record').textContent = R.w + 'W ' + R.d + 'D ' + R.l + 'L   ·   GOALS ' + R.gf + '–' + R.ga;
   const avg = Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
   $('verdict-avg').textContent = 'AVERAGE RATING ' + avg + ' · 1930—2026';
+  document.querySelector('#s6 .tracklist-label').textContent = S.teamName;
 
   renderPitchInto('result-slots', true);
 }
@@ -765,6 +782,9 @@ function resetGame() {
   S.xi = {};
   S.used = new Set();
   S.jokerOffered = false;
+  S.teamName = '';
+  const tn = $('team-name');
+  if (tn) tn.value = '';
   S.skips = { team: 1, year: 1 };
   S.draw = null;
   S.journey = null;
@@ -788,11 +808,13 @@ function wire() {
   $('board-toggle').addEventListener('click', () => { boardReturn = 's3'; renderBoard(); show('s4'); });
   $('joker-swap').addEventListener('click', enterSwapMode);
   $('joker-keep').addEventListener('click', startTournament);
+  $('btn-name-lock').addEventListener('click', lockTeamName);
+  $('team-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') lockTeamName(); });
   $('board-close').addEventListener('click', () => show(boardReturn));
   $('btn-next-match').addEventListener('click', nextMatch);
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
   $('btn-share').addEventListener('click', () => {
-    shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc).catch(console.error);
+    shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName).catch(console.error);
   });
 }
 
