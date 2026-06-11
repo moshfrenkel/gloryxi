@@ -43,6 +43,22 @@ const S = {
   feedQueue: [], feedIdx: 0, matchNo: 0, printing: false,
 };
 
+// ── analytics — anonymous counts only (Umami), never blocks gameplay ─────────
+function track(name, data) {
+  try { if (window.umami) window.umami.track(name, data); } catch (_) { /* ignore */ }
+}
+function bumpGamesPlayed() {
+  let n = 1;
+  try {
+    n = (parseInt(localStorage.getItem('gxi_games'), 10) || 0) + 1;
+    localStorage.setItem('gxi_games', String(n));
+  } catch (_) { /* private mode — count as 1 */ }
+  return n;
+}
+function gamesBucket(n) {
+  return n <= 5 ? String(n) : n <= 10 ? '6-10' : n <= 20 ? '11-20' : '21+';
+}
+
 // ── data ──────────────────────────────────────────────────────────────────────
 async function loadData() {
   const [p, t, f] = await Promise.all([
@@ -767,6 +783,7 @@ function finishTournament() { showResult(); }
 // ── S6 back cover ─────────────────────────────────────────────────────────────
 function showResult() {
   const J = S.journey;
+  track('game_complete', { stage: J.finalStage, games_played: gamesBucket(bumpGamesPlayed()) });
   show('s6');
   const s6 = $('s6');
   s6.classList.toggle('champion', J.finalStage === 'CHAMPION');
@@ -803,7 +820,7 @@ function resetGame() {
 // ── boot ──────────────────────────────────────────────────────────────────────
 let boardReturn = 's3';
 function wire() {
-  $('btn-start').addEventListener('click', () => { resetGame(); showLegends(); });
+  $('btn-start').addEventListener('click', () => { track('game_start'); resetGame(); showLegends(); });
   $('legend-skip').addEventListener('click', () => startDraw(null));
   $('btn-skip-team').addEventListener('click', () => skip('team'));
   $('btn-skip-year').addEventListener('click', () => skip('year'));
@@ -818,6 +835,7 @@ function wire() {
   $('btn-next-match').addEventListener('click', nextMatch);
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
   $('btn-share').addEventListener('click', () => {
+    track('share', { stage: S.journey ? S.journey.finalStage : 'unknown' });
     shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName).catch(console.error);
   });
 }
