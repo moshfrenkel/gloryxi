@@ -62,7 +62,7 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
 
   // daily challenge badge — top-right gold slab
   if (daily) {
-    const tag = 'DAILY #' + daily.day;
+    const tag = 'DAILY #' + daily.day + (daily.ok === true ? ' ✓' : '');
     x.font = '34px Anton, "Arial Narrow", sans-serif';
     const tw = x.measureText(tag).width;
     x.save();
@@ -151,7 +151,7 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
       await navigator.share({
         files: [file],
         title: 'GloryXI',
-        text: (daily ? 'GloryXI Daily #' + daily.day + ' · ' + daily.title + '\n' : '') +
+        text: (daily ? 'GloryXI Daily #' + daily.day + ' · ' + daily.title + (daily.ok === true ? ' ✓' : daily.ok === false ? ' ✗' : '') + '\n' : '') +
           teamName + ' — ' + verdict + '. Build your own all-time XI: https://moshfrenkel.github.io/gloryxi/',
       });
       return;

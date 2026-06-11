@@ -1,5 +1,5 @@
 [
-  { "d": 1,  "date": "2026-06-11", "t_en": "OPENING WHISTLE", "t_he": "שריקת הפתיחה", "x_en": "The real opener is tonight: field one Mexican AND one South African player.", "x_he": "משחק הפתיחה האמיתי הערב: שבץ שחקן ממקסיקו וגם שחקן מדרום אפריקה." },
+  { "d": 1,  "date": "2026-06-11", "t_en": "OPENING WHISTLE", "t_he": "שריקת הפתיחה", "x_en": "The real opener is tonight: field one Mexican AND one South African player. The draw will bring them — your job is to pick and place them.", "x_he": "משחק הפתיחה האמיתי הערב: שבץ שחקן ממקסיקו וגם שחקן מדרום אפריקה. ההגרלה תביא אותן, התפקיד שלך לבחור ולשבץ.", "req": ["Mexico", "South Africa"] },
   { "d": 2,  "date": "2026-06-12", "t_en": "NO SUPERSTARS", "t_he": "בלי כוכבי-על", "x_en": "Nobody rated over 85. How far can craft alone go?", "x_he": "אף שחקן מעל דירוג 85. כמה רחוק מגיעים בלי כוכבים?" },
   { "d": 3,  "date": "2026-06-13", "t_en": "LAUNCH DUEL", "t_he": "דו-קרב ההשקה", "x_en": "Challenge one friend. Same rules, who goes further today?", "x_he": "אתגר חבר אחד. אותם חוקים, מי מגיע רחוק יותר היום?" },
   { "d": 4,  "date": "2026-06-14", "t_en": "DEFENDER'S GOAL", "t_he": "גול של מגן", "x_en": "One of your defenders must score in the tournament.", "x_he": "אחד המגינים שלך חייב לכבוש בטורניר." },

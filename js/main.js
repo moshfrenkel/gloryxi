@@ -42,7 +42,7 @@ const S = {
   spinning: false,
   journey: null,
   feedQueue: [], feedIdx: 0, matchNo: 0, printing: false,
-  challenges: [], challenge: null,
+  challenges: [], challenge: null, challengeOk: null,
 };
 
 // ── analytics — anonymous counts only (Umami), never blocks gameplay ─────────
@@ -146,17 +146,31 @@ function pickCombo(constraint) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// challenge mode: if today's challenge requires specific nations, the draw
+// serves each missing one (random year) until the roster contains them.
+// A team-skip still dodges it for one draw — it comes back on the next.
+function pickChallengeCombo() {
+  const req = S.challenge && S.challenge.req;
+  if (!req || !req.length) return null;
+  const have = new Set(Object.values(S.xi).map(p => p.c));
+  const missing = req.filter(n => !have.has(n));
+  if (!missing.length) return null;
+  const pool = S.combos.filter(c => c[0] === missing[0] && comboValid(c));
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 // ── S2 auto-spin ──────────────────────────────────────────────────────────────
 function startDraw(constraint) {
   const ll = $('legend-list');
   if (ll && ll.childElementCount) ll.innerHTML = '';
-  const target = pickCombo(constraint);
+  const target = (constraint ? null : pickChallengeCombo()) || pickCombo(constraint);
   if (!target) { startTournament(); return; }
   S.draw = { c: target[0], y: target[1] };
   S.spinning = true;
 
   show('s2');
-  $('s2-round').textContent = t('pick_of', Object.keys(S.xi).length + 1);
+  $('s2-round').textContent = t('pick_of', Object.keys(S.xi).length + 1) + (S.challenge ? ' · DAILY #' + S.challenge.d : '');
   const stamp = $('draw-header');
   stamp.textContent = '';
   stamp.classList.remove('stamped');
@@ -784,15 +798,22 @@ function showResult() {
   const evt = { stage: J.finalStage, games_played: gamesBucket(bumpGamesPlayed()) };
   if (S.challenge) {
     evt.daily = S.challenge.d;
+    if (S.challenge.req) {
+      const have = new Set(Object.values(S.xi).map(p => p.c));
+      S.challengeOk = S.challenge.req.every(n => have.has(n));
+      evt.daily_ok = S.challengeOk;
+    } else S.challengeOk = null;
     try {
       const done = dailyDone();
-      done[S.challenge.d] = J.finalStage;
+      done[S.challenge.d] = { s: J.finalStage, ok: S.challengeOk };
       localStorage.setItem('gxi_daily_done', JSON.stringify(done));
     } catch (_) { /* ok */ }
   }
   track('game_complete', evt);
   document.querySelector('#s6 .verdict-kicker').textContent =
-    S.challenge ? ('DAILY #' + S.challenge.d + ' · ' + chTitle(S.challenge)) : t('s6_kicker');
+    S.challenge
+      ? ('DAILY #' + S.challenge.d + ' · ' + chTitle(S.challenge) + (S.challengeOk === true ? ' ✓' : S.challengeOk === false ? ' ✗' : ''))
+      : t('s6_kicker');
   show('s6');
   const s6 = $('s6');
   s6.classList.toggle('champion', J.finalStage === 'CHAMPION');
@@ -973,7 +994,7 @@ function wire() {
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
-    const daily = S.challenge ? { day: S.challenge.d, title: S.challenge.t_en } : null;
+    const daily = S.challenge ? { day: S.challenge.d, title: S.challenge.t_en, ok: S.challengeOk } : null;
     shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily).catch(console.error);
   });
 }
