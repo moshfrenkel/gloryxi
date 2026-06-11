@@ -11,9 +11,13 @@
  *   selftest(n)                         → calibration table
  */
 
-// Calibrated 2026-06-10: avg99 wins ≥60%, avg50 wins <0.5%, avg80 QF+ >50%
-const ELO_BASE  = 1150;
-const ELO_SCALE = 12;
+// Recalibrated 2026-06-11 (difficulty pass, Mosh option B): a championship
+// should be an event, not a routine. Targets vs the REAL 2026 field:
+// savvy XI (legend95+avg75) ≈ 8-10% champion, uniform85 ≈ 18-20%,
+// casual (legend95+avg65) ≈ 1%, uniform60 ≈ 0.2%.
+// Previous values (1150 / 12) made avg75 = Argentina-level → 27% champion.
+const ELO_BASE  = 1225;
+const ELO_SCALE = 10;
 const EXP_COEF  = 0.50;
 
 // ─── 2.1 Team scores ──────────────────────────────────────────────────────────
@@ -442,10 +446,10 @@ export function selftest(n = 2000) {
   const win99 = results.avg99.counts.CHAMPION / n;
   const win50 = results.avg50.counts.CHAMPION / n;
   const qf80  = (results.avg80.counts.QF + results.avg80.counts.SF + results.avg80.counts.F + results.avg80.counts.CHAMPION) / n;
-  console.log('\nTarget checks:');
-  console.log(`  avg99 win rate: ${(win99 * 100).toFixed(1)}% (need >=60%)`);
-  console.log(`  avg50 win rate: ${(win50 * 100).toFixed(1)}% (need <0.5%)`);
-  console.log(`  avg80 QF+ rate: ${(qf80 * 100).toFixed(1)}% (need >50%)`);
+  console.log('\nTarget checks (post 2026-06-11 difficulty pass):');
+  console.log(`  avg99 win rate: ${(win99 * 100).toFixed(1)}% (need >=30%)`);
+  console.log(`  avg50 win rate: ${(win50 * 100).toFixed(1)}% (need <0.1%)`);
+  console.log(`  avg80 QF+ rate: ${(qf80 * 100).toFixed(1)}% (need >35%)`);
   return results;
 }
 
