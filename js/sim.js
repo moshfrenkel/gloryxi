@@ -1,5 +1,5 @@
 /**
- * sim.js — GloryXI simulation engine (V3 tournament logic)
+ * sim.js — GloryXI simulation engine (V4: positional weights + real 2026 bracket)
  * Pure functions, ES module, no DOM, no JSON imports at module load.
  *
  * Public API:
@@ -7,7 +7,7 @@
  *   computeTeamElo(xi)                  → number
  *   simulateMatch(eloA, eloB, playersA) → group match
  *   simulateKnockout(eloA, eloB, playersA) → with a.e.t./pens
- *   simulateTournament(xi, field2026)   → journey (real group, ranked advance, bracket-shaped KO)
+ *   simulateTournament(xi, field2026)   → journey (all 12 groups simulated, official bracket)
  *   selftest(n)                         → calibration table
  */
 
@@ -17,33 +17,84 @@ const ELO_SCALE = 12;
 const EXP_COEF  = 0.50;
 
 // ─── 2.1 Team scores ──────────────────────────────────────────────────────────
+// Positional importance in 4-4-2, grounded in plus-minus rating literature
+// (Kharrat/McHale/Peña), market-value-by-position data (CIES/Transfermarkt) and
+// goals-prevented analysis (Anderson & Sally): the spine (ST > CM > CB) carries
+// more outcome variance than wide slots; GK has a high ceiling but is one slot.
+const SLOT_TYPE   = { GK: 'GK', RB: 'FB', LB: 'FB', CB1: 'CB', CB2: 'CB', CM1: 'CM', CM2: 'CM', RM: 'WM', LM: 'WM', ST1: 'ST', ST2: 'ST' };
+const SLOT_WEIGHT = { GK: 1.00, FB: 0.85, CB: 1.05, CM: 1.10, WM: 0.85, ST: 1.15 };
+const CONTRIB = {
+  GK: { d: 1.00, m: 0.00, a: 0.00 },
+  CB: { d: 0.90, m: 0.10, a: 0.00 },
+  FB: { d: 0.70, m: 0.25, a: 0.05 },
+  CM: { d: 0.25, m: 0.60, a: 0.15 },
+  WM: { d: 0.15, m: 0.55, a: 0.30 },
+  ST: { d: 0.05, m: 0.15, a: 0.80 },
+};
+// Out-of-position retention: share of rating kept when a player's natural role
+// group differs from the slot's role group. GK is unique in both directions;
+// adjacent roles transfer best (DF↔MF, MF→FW).
+const OOP_RETENTION = {
+  GK: { GK: 1.00, DF: 0.50, MF: 0.40, FW: 0.35 },
+  DF: { GK: 0.35, DF: 1.00, MF: 0.78, FW: 0.60 },
+  MF: { GK: 0.30, DF: 0.80, MF: 1.00, FW: 0.82 },
+  FW: { GK: 0.25, DF: 0.50, MF: 0.75, FW: 1.00 },
+};
+// Within-group refinement when the player's real positions (sp, e.g. "RB/CB"
+// from per-match data / Wikidata) are known: exact slot keeps 100%, the
+// mirrored flank (RB↔LB, RM↔LM) keeps 92%, any other in-group slot 88%.
+const SLOT_TOKEN = { GK: 'GK', RB: 'RB', LB: 'LB', CB1: 'CB', CB2: 'CB', CM1: 'CM', CM2: 'CM', RM: 'RM', LM: 'LM', ST1: 'ST', ST2: 'ST' };
+const MIRROR_TOKEN = { RB: 'LB', LB: 'RB', RM: 'LM', LM: 'RM' };
+
 export function computeTeamScores(xi) {
   // Slot values may be plain ratings or player objects {n, p, r}
-  const r = {};
+  const acc = { d: { n: 0, w: 0 }, m: { n: 0, w: 0 }, a: { n: 0, w: 0 } };
+  let effSum = 0;
   for (const slot of ['GK','RB','CB1','CB2','LB','CM1','CM2','RM','LM','ST1','ST2']) {
     const v = xi[slot];
-    r[slot] = typeof v === 'number' ? v
+    const slotGroup = _slotToPos(slot);
+    const r = typeof v === 'number' ? v
       : (v && typeof v === 'object' && typeof v.r === 'number') ? v.r
       : 50;
+    const natural = (v && typeof v === 'object' && v.p) ? v.p : slotGroup;
+    let retention = (OOP_RETENTION[natural] || OOP_RETENTION.MF)[slotGroup] || 1;
+    const spRaw = (v && typeof v === 'object') ? v.sp : null;
+    const sp = typeof spRaw === 'string' ? spRaw.split('/') : Array.isArray(spRaw) ? spRaw : null;
+    if (sp && sp.length) {
+      const token = SLOT_TOKEN[slot];
+      if (sp.includes(token)) retention = Math.max(retention, 1);
+      else if (natural === slotGroup) {
+        retention = (MIRROR_TOKEN[token] && sp.includes(MIRROR_TOKEN[token])) ? 0.92 : 0.88;
+      }
+    }
+    const eff = r * retention;
+    effSum += eff;
+
+    const t = SLOT_TYPE[slot];
+    const w = SLOT_WEIGHT[t];
+    const c = CONTRIB[t];
+    acc.d.n += w * c.d * eff; acc.d.w += w * c.d;
+    acc.m.n += w * c.m * eff; acc.m.w += w * c.m;
+    acc.a.n += w * c.a * eff; acc.a.w += w * c.a;
   }
-  const { GK, RB, CB1, CB2, LB, CM1, CM2, RM, LM, ST1, ST2 } = r;
+  const defense  = acc.d.n / acc.d.w;
+  const midfield = acc.m.n / acc.m.w;
+  const attack   = acc.a.n / acc.a.w;
 
-  const defense  = 0.35 * GK + 0.65 * ((RB + CB1 + CB2 + LB) / 4);
-  const midfield = (CM1 + CM2 + RM + LM) / 4;
-  const attack   = 0.6 * ((ST1 + ST2) / 2) + 0.4 * midfield;
-
+  // Weakest-link gate (Anderson & Sally: upgrading the worst line moves
+  // results more than upgrading the best one).
   const gate = Math.min(defense, midfield, attack);
   const defenseEff  = 0.75 * defense  + 0.25 * gate;
   const midfieldEff = 0.75 * midfield + 0.25 * gate;
   const attackEff   = 0.75 * attack   + 0.25 * gate;
-  const avgRating = (GK + RB + CB1 + CB2 + LB + CM1 + CM2 + RM + LM + ST1 + ST2) / 11;
+  const avgRating = effSum / 11;
 
   return { defense, midfield, attack, defenseEff, midfieldEff, attackEff, avgRating };
 }
 
 export function computeTeamElo(xi) {
-  const { attackEff, defenseEff } = computeTeamScores(xi);
-  return ELO_BASE + ELO_SCALE * (0.5 * attackEff + 0.5 * defenseEff);
+  const { attackEff, defenseEff, midfieldEff } = computeTeamScores(xi);
+  return ELO_BASE + ELO_SCALE * (0.40 * attackEff + 0.35 * defenseEff + 0.25 * midfieldEff);
 }
 
 // ─── Poisson ──────────────────────────────────────────────────────────────────
@@ -114,7 +165,91 @@ function _sampleScorers(numGoals, players, scorers, maxMinute) {
   scorers.sort((a, b) => a.minute - b.minute);
 }
 
-// ─── 2.4 Tournament (V3: real group play, ranked advancement, bracket-shaped KO) ─
+// ─── 2.4 Official 2026 bracket ────────────────────────────────────────────────
+// Verified 2026-06-11 against two independent sources (Wikipedia "2026 FIFA
+// World Cup knockout stage" + Sky Sports full 104-match schedule). Slots:
+// '1A' = Group A winner, '2A' = runner-up, '3:ABCDF' = best-third slot whose
+// allowed groups are A/B/C/D/F.
+const BRACKET_R32 = [
+  { m: 73, a: '2A', b: '2B' },
+  { m: 74, a: '1E', b: '3:ABCDF' },
+  { m: 75, a: '1F', b: '2C' },
+  { m: 76, a: '1C', b: '2F' },
+  { m: 77, a: '1I', b: '3:CDFGH' },
+  { m: 78, a: '2E', b: '2I' },
+  { m: 79, a: '1A', b: '3:CEFHI' },
+  { m: 80, a: '1L', b: '3:EHIJK' },
+  { m: 81, a: '1D', b: '3:BEFIJ' },
+  { m: 82, a: '1G', b: '3:AEHIJ' },
+  { m: 83, a: '2K', b: '2L' },
+  { m: 84, a: '1H', b: '2J' },
+  { m: 85, a: '1B', b: '3:EFGIJ' },
+  { m: 86, a: '1J', b: '2H' },
+  { m: 87, a: '1K', b: '3:DEIJL' },
+  { m: 88, a: '2D', b: '2G' },
+];
+const BRACKET_LATER = [
+  { m: 89,  a: 74, b: 77, stage: 'R16' },
+  { m: 90,  a: 73, b: 75, stage: 'R16' },
+  { m: 91,  a: 76, b: 78, stage: 'R16' },
+  { m: 92,  a: 79, b: 80, stage: 'R16' },
+  { m: 93,  a: 83, b: 84, stage: 'R16' },
+  { m: 94,  a: 81, b: 82, stage: 'R16' },
+  { m: 95,  a: 86, b: 88, stage: 'R16' },
+  { m: 96,  a: 85, b: 87, stage: 'R16' },
+  { m: 97,  a: 89, b: 90, stage: 'QF' },
+  { m: 98,  a: 93, b: 94, stage: 'QF' },
+  { m: 99,  a: 91, b: 92, stage: 'QF' },
+  { m: 100, a: 95, b: 96, stage: 'QF' },
+  { m: 101, a: 97, b: 98, stage: 'SF' },
+  { m: 102, a: 99, b: 100, stage: 'SF' },
+  { m: 104, a: 101, b: 102, stage: 'F' },
+];
+
+function _shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Assign the 8 qualified third-place groups to the 8 third-slots, honouring
+// each slot's allowed-groups set (backtracking; FIFA's sets are built so a
+// valid assignment exists for every qualifying combination).
+function _allocateThirds(qualifiedGroups) {
+  const slots = BRACKET_R32
+    .filter(x => x.b.startsWith('3:'))
+    .map(x => ({ m: x.m, allowed: x.b.slice(2) }));
+  slots.sort((x, y) =>
+    [...x.allowed].filter(g => qualifiedGroups.includes(g)).length -
+    [...y.allowed].filter(g => qualifiedGroups.includes(g)).length);
+
+  const assigned = new Map();
+  const used = new Set();
+  const bt = (i) => {
+    if (i === slots.length) return true;
+    const opts = _shuffle(qualifiedGroups.filter(g => slots[i].allowed.includes(g) && !used.has(g)));
+    for (const g of opts) {
+      used.add(g); assigned.set(slots[i].m, g);
+      if (bt(i + 1)) return true;
+      used.delete(g); assigned.delete(slots[i].m);
+    }
+    return false;
+  };
+  if (!bt(0)) {
+    assigned.clear(); used.clear();
+    for (const s of slots) {
+      const g = qualifiedGroups.find(x => !used.has(x) && s.allowed.includes(x))
+             || qualifiedGroups.find(x => !used.has(x));
+      used.add(g); assigned.set(s.m, g);
+    }
+  }
+  return assigned; // matchNumber -> group letter
+}
+
+// ─── 2.5 Tournament (V4: all 12 groups simulated, official knockout bracket) ──
 export function simulateTournament(xi, field2026) {
   const normXi  = _normaliseXi(xi);
   const players = _xiToPlayers(normXi);
@@ -124,114 +259,102 @@ export function simulateTournament(xi, field2026) {
   const { groups, groupKey, replaced } = _placeUser(field2026);
   const getElo = t => t === 'USER_XI' ? userElo : (field2026.strengths[t] || 1700);
 
-  // Full round-robin in the user's group (6 matches), real table
-  const members = groups[groupKey];
-  const table = {};
-  for (const t of members) table[t] = { team: t, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
-
   const journey = [];
   const record  = { w: 0, d: 0, l: 0, gf: 0, ga: 0 };
 
-  for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) {
-    const A = members[i], B = members[j];
-    const userIsA = A === 'USER_XI', userIsB = B === 'USER_XI';
-    const m = simulateMatch(getElo(A), getElo(B), userIsA ? players : null);
-    _applyResult(table[A], table[B], m.scoreA, m.scoreB);
+  // Full round-robin in ALL groups — the rest of the field is real, so the
+  // bracket the user walks into is the one the actual results produce.
+  const tables = {};
+  for (const [key, members] of Object.entries(groups)) {
+    const table = {};
+    for (const t of members) table[t] = { team: t, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
 
-    if (userIsA || userIsB) {
-      const sf = userIsA ? m.scoreA : m.scoreB;
-      const sa = userIsA ? m.scoreB : m.scoreA;
-      const opp = userIsA ? B : A;
-      record.gf += sf; record.ga += sa;
-      if (sf > sa) record.w++; else if (sf === sa) record.d++; else record.l++;
-      let scorers = m.scorers;
-      if (userIsB) { // resimulate scorers from user perspective (cheap: sample for sf goals)
-        scorers = [];
-        _sampleScorers(sf, players, scorers, 90);
+    for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) {
+      const A = members[i], B = members[j];
+      const userIsA = A === 'USER_XI', userIsB = B === 'USER_XI';
+      const m = simulateMatch(getElo(A), getElo(B), userIsA ? players : null);
+      _applyResult(table[A], table[B], m.scoreA, m.scoreB);
+
+      if (userIsA || userIsB) {
+        const sf = userIsA ? m.scoreA : m.scoreB;
+        const sa = userIsA ? m.scoreB : m.scoreA;
+        const opp = userIsA ? B : A;
+        record.gf += sf; record.ga += sa;
+        if (sf > sa) record.w++; else if (sf === sa) record.d++; else record.l++;
+        let scorers = m.scorers;
+        if (userIsB) { // resimulate scorers from user perspective (cheap: sample for sf goals)
+          scorers = [];
+          _sampleScorers(sf, players, scorers, 90);
+        }
+        journey.push({ stage: 'GROUP', opponent: opp, scoreFor: sf, scoreAgainst: sa, scorers, note: '' });
       }
-      journey.push({ stage: 'GROUP', opponent: opp, scoreFor: sf, scoreAgainst: sa, scorers, note: '' });
     }
+    tables[key] = Object.values(table).sort((a, b) =>
+      b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || Math.random() - 0.5);
   }
 
-  const rows = Object.values(table).sort((a, b) =>
-    b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
+  const rows = tables[groupKey];
   const rank = rows.findIndex(r => r.team === 'USER_XI') + 1;
-  const userRow = rows[rank - 1];
   const groupTable = rows.map(r => ({ ...r }));
-
-  // 2026 format: top-2 advance + best 8 of 12 thirds
-  let advanced = rank <= 2;
-  if (rank === 3) {
-    advanced = Math.random() < (userRow.pts >= 5 ? 0.9 : userRow.pts >= 4 ? 0.65 : userRow.pts === 3 ? 0.35 : 0.05);
-  }
   const base = { groupKey, replaced, rank, groupTable };
+
+  // 2026 format: top-2 advance + the 8 best thirds of 12 (real comparison)
+  const thirds = Object.entries(tables)
+    .map(([g, rws]) => ({ g, ...rws[2] }))
+    .sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || Math.random() - 0.5);
+  const qualifiedThirds = thirds.slice(0, 8);
+  const qualifiedThirdGroups = qualifiedThirds.map(t => t.g);
+
+  const advanced = rank <= 2 || (rank === 3 && qualifiedThirdGroups.includes(groupKey));
   if (!advanced) return { journey, finalStage: 'GROUP_EXIT', record, ...base };
 
-  // Qualify the other groups (Elo + noise), build pools
-  const winners = [], runners = [], thirds = [];
-  rows.forEach((r, idx) => {
-    if (r.team === 'USER_XI') return;
-    if (idx === 0) winners.push(r.team);
-    else if (idx === 1) runners.push(r.team);
-    else if (idx === 2 && Math.random() < 0.6) thirds.push(r.team);
-  });
-  for (const [k, mem] of Object.entries(groups)) {
-    if (k === groupKey) continue;
-    const sorted = mem.slice().sort((a, b) =>
-      ((field2026.strengths[b] || 1700) + Math.random() * 140) -
-      ((field2026.strengths[a] || 1700) + Math.random() * 140));
-    winners.push(sorted[0]);
-    runners.push(sorted[1]);
-    if (Math.random() < 8 / 12) thirds.push(sorted[2]);
+  // Seed map + third-slot allocation
+  const seed = {};
+  for (const [g, rws] of Object.entries(tables)) {
+    seed['1' + g] = rws[0].team;
+    seed['2' + g] = rws[1].team;
   }
+  const thirdAlloc = _allocateThirds(qualifiedThirdGroups); // match -> group letter
 
-  // Bracket-realistic opponent selection:
-  // - R32 pairing follows your group rank (winners meet thirds, runners meet runners).
-  // - The deeper the round, the more surviving opponents skew elite (Elo-weighted),
-  //   mirroring a real bracket where favourites converge on the semis.
-  const qualifiers = [
-    ...winners.map(t => ({ t, tier: 'W' })),
-    ...runners.map(t => ({ t, tier: 'R' })),
-    ...thirds.map(t => ({ t, tier: 'T' })),
-  ];
-  const TIER_PREF = {
-    R32: rank === 1 ? { W: 0.3, R: 1.5, T: 6 } : rank === 2 ? { W: 0.6, R: 5, T: 1.5 } : { W: 6, R: 1.5, T: 0.3 },
-    R16: { W: 1, R: 1, T: 0.7 },
-    QF:  { W: 2, R: 1, T: 0.4 },
-    SF:  { W: 3, R: 0.8, T: 0.2 },
-    F:   { W: 4, R: 0.6, T: 0.1 },
-  };
-  const ELO_BETA = { R32: 0, R16: 0.35, QF: 0.7, SF: 1.1, F: 1.4 };
-
-  const pickOpponent = (stage) => {
-    if (!qualifiers.length) return 'Unknown';
-    const pref = TIER_PREF[stage], beta = ELO_BETA[stage];
-    const weights = qualifiers.map(q =>
-      (pref[q.tier] || 1) * Math.exp(beta * ((field2026.strengths[q.t] || 1700) - 1800) / 100));
-    let r = Math.random() * weights.reduce((s, w) => s + w, 0);
-    for (let i = 0; i < qualifiers.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return qualifiers.splice(i, 1)[0].t;
+  // Play the official bracket, match by match
+  const winners = {};
+  const playKnockout = (mnum, teamA, teamB, stage) => {
+    const userInA = teamA === 'USER_XI', userInB = teamB === 'USER_XI';
+    if (userInA || userInB) {
+      const opp = userInA ? teamB : teamA;
+      const m = simulateKnockout(userElo, getElo(opp), players);
+      record.gf += m.scoreA; record.ga += m.scoreB;
+      if (m.winnerIsA) record.w++;
+      else if (m.note.startsWith('(pens')) record.d++;
+      else record.l++;
+      journey.push({
+        stage, opponent: opp,
+        scoreFor: m.scoreA, scoreAgainst: m.scoreB,
+        scorers: m.scorers, note: m.note, winnerIsA: m.winnerIsA,
+      });
+      winners[mnum] = m.winnerIsA ? 'USER_XI' : opp;
+      return m.winnerIsA;
     }
-    return qualifiers.pop().t;
+    const m = simulateKnockout(getElo(teamA), getElo(teamB), null);
+    winners[mnum] = m.winnerIsA ? teamA : teamB;
+    return true;
   };
 
-  for (const stage of ['R32', 'R16', 'QF', 'SF', 'F']) {
-    const oppName = pickOpponent(stage);
-    const m = simulateKnockout(userElo, getElo(oppName), players);
-    record.gf += m.scoreA; record.ga += m.scoreB;
-    if (m.winnerIsA) record.w++;
-    else if (m.note.startsWith('(pens')) record.d++;
-    else record.l++;
-
-    journey.push({
-      stage, opponent: oppName,
-      scoreFor: m.scoreA, scoreAgainst: m.scoreB,
-      scorers: m.scorers, note: m.note, winnerIsA: m.winnerIsA,
-    });
-    if (!m.winnerIsA) return { journey, finalStage: stage, record, ...base };
+  for (const x of BRACKET_R32) {
+    const teamA = seed[x.a];
+    const teamB = x.b.startsWith('3:')
+      ? tables[thirdAlloc.get(x.m)][2].team
+      : seed[x.b];
+    const userAlive = playKnockout(x.m, teamA, teamB, 'R32');
+    if (!userAlive) return { journey, finalStage: 'R32', record, ...base };
   }
-  return { journey, finalStage: 'CHAMPION', record, ...base };
+  for (const x of BRACKET_LATER) {
+    const userAlive = playKnockout(x.m, winners[x.a], winners[x.b], x.stage);
+    if (!userAlive) return { journey, finalStage: x.stage, record, ...base };
+  }
+  return winners[104] === 'USER_XI'
+    ? { journey, finalStage: 'CHAMPION', record, ...base }
+    : { journey, finalStage: 'F', record, ...base };
 }
 
 function _applyResult(rowA, rowB, sa, sb) {
@@ -266,7 +389,7 @@ function _normaliseXi(xi) {
   const out = {};
   for (const [slot, val] of Object.entries(xi)) {
     if (typeof val === 'number') out[slot] = { name: slot, p: _slotToPos(slot), r: val };
-    else if (val && typeof val === 'object') out[slot] = { name: val.n || val.name || slot, p: val.p || _slotToPos(slot), r: val.r || 50 };
+    else if (val && typeof val === 'object') out[slot] = { name: val.n || val.name || slot, p: val.p || _slotToPos(slot), r: val.r || 50, sp: val.sp };
     else out[slot] = { name: slot, p: _slotToPos(slot), r: 50 };
   }
   return out;
@@ -314,7 +437,7 @@ export function selftest(n = 2000) {
   const xi80 = _makeUniformXi(80);
   const t1 = Date.now();
   for (let i = 0; i < 10000; i++) simulateTournament(xi80, mockField);
-  console.log(`\n10k tournaments: ${Date.now() - t1}ms (target: <1000ms)`);
+  console.log(`\n10k tournaments: ${Date.now() - t1}ms (target: <10000ms)`);
 
   const win99 = results.avg99.counts.CHAMPION / n;
   const win50 = results.avg50.counts.CHAMPION / n;

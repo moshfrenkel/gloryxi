@@ -260,7 +260,7 @@ function playerRow(p) {
   nm.textContent = p.n.toUpperCase();
   const meta = document.createElement('div');
   meta.className = 'p-meta';
-  const bits = [p.p2 || p.p];
+  const bits = [p.sp || p.p2 || p.p];
   if (p.club) bits.push(p.club);
   if (p.caps) bits.push(p.caps + ' caps');
   if (p.g) bits.push(p.g + ' goals');
@@ -293,6 +293,10 @@ function toggleSlotStrip(row, p) {
   for (const slot of slotsForPos(p.p)) {
     const b = document.createElement('button');
     b.className = 'slot-option';
+    // dim slots outside the player's real positions (sp like "RB/CB") — placing
+    // there still works but costs rating in the sim
+    const token = slot === 'GK' ? 'GK' : slot.startsWith('CB') ? 'CB' : slot.startsWith('CM') ? 'CM' : slot.startsWith('ST') ? 'ST' : slot;
+    if (p.sp && !p.sp.split('/').includes(token)) b.classList.add('off-pos');
     b.textContent = SLOT_LABEL[slot];
     b.addEventListener('click', (e) => { e.stopPropagation(); place(p, slot); });
     strip.appendChild(b);
@@ -484,7 +488,7 @@ function runTournament() {
   const xiSim = {};
   for (const slot of SLOTS) {
     const p = S.xi[slot];
-    xiSim[slot] = { n: surname(p.n).toUpperCase(), p: p.p, r: p.r };
+    xiSim[slot] = { n: surname(p.n).toUpperCase(), p: p.p, r: p.r, sp: p.sp };
   }
   S.journey = simulateTournament(xiSim, S.field);
 
