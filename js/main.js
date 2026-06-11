@@ -42,6 +42,7 @@ const S = {
   spinning: false,
   journey: null,
   feedQueue: [], feedIdx: 0, matchNo: 0, printing: false,
+  challenges: [], challenge: null,
 };
 
 // ── analytics — anonymous counts only (Umami), never blocks gameplay ─────────
@@ -62,15 +63,17 @@ function gamesBucket(n) {
 
 // ── data ──────────────────────────────────────────────────────────────────────
 async function loadData() {
-  const [p, t, f] = await Promise.all([
+  const [p, t, f, ch] = await Promise.all([
     fetch('./data/players.json').then(r => r.json()),
     fetch('./data/teams.json').then(r => r.json()),
     fetch('./data/field2026.json').then(r => r.json()),
+    fetch('./data/challenges.json').then(r => r.json()).catch(() => []),
   ]);
   S.players = p;
   S.teams = t.teams;
   S.combos = t.combos;
   S.field = f;
+  S.challenges = ch;
   for (const pl of p) {
     const k = pl.c + '|' + pl.y;
     if (!S.squads.has(k)) S.squads.set(k, []);
@@ -778,7 +781,18 @@ function finishTournament() { showResult(); }
 // ── S6 back cover ─────────────────────────────────────────────────────────────
 function showResult() {
   const J = S.journey;
-  track('game_complete', { stage: J.finalStage, games_played: gamesBucket(bumpGamesPlayed()) });
+  const evt = { stage: J.finalStage, games_played: gamesBucket(bumpGamesPlayed()) };
+  if (S.challenge) {
+    evt.daily = S.challenge.d;
+    try {
+      const done = dailyDone();
+      done[S.challenge.d] = J.finalStage;
+      localStorage.setItem('gxi_daily_done', JSON.stringify(done));
+    } catch (_) { /* ok */ }
+  }
+  track('game_complete', evt);
+  document.querySelector('#s6 .verdict-kicker').textContent =
+    S.challenge ? ('DAILY #' + S.challenge.d + ' · ' + chTitle(S.challenge)) : t('s6_kicker');
   show('s6');
   const s6 = $('s6');
   s6.classList.toggle('champion', J.finalStage === 'CHAMPION');
@@ -848,20 +862,101 @@ function updateLangButton() {
   $('lang-label').textContent = getLang() === 'he' ? 'English' : 'עברית';
 }
 
+// ── daily challenge (stage 1: honor system, locked by device date) ───────────
+function _todayIso() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function todayChallenge() {
+  return (S.challenges || []).find(c => c.date === _todayIso()) || null;
+}
+function dailyDone() {
+  try { return JSON.parse(localStorage.getItem('gxi_daily_done') || '{}'); } catch (_) { return {}; }
+}
+function chTitle(c) { return getLang() === 'he' ? c.t_he : c.t_en; }
+function chDesc(c)  { return getLang() === 'he' ? c.x_he : c.x_en; }
+
+function updateDailyBtn() {
+  const c = todayChallenge();
+  const btn = $('daily-btn');
+  if (!c) { btn.hidden = true; return; }
+  btn.hidden = false;
+  $('daily-btn-label').textContent = t('daily_btn', c.d);
+}
+
+function showDaily() {
+  const list = $('daily-list');
+  list.innerHTML = '';
+  const iso = _todayIso();
+  const done = dailyDone();
+  let todayRow = null;
+
+  for (const c of S.challenges) {
+    const isToday = c.date === iso;
+    const isPast = c.date < iso;
+    const isTomorrow = !isPast && !isToday && S.challenges.find(x => x.date > iso) === c;
+    const row = document.createElement('div');
+    row.className = 'daily-row' + (isToday ? ' today' : isPast ? ' past' : ' locked');
+
+    const dn = document.createElement('div');
+    dn.className = 'daily-dn';
+    dn.textContent = String(c.d).padStart(2, '0');
+    const body = document.createElement('div');
+    body.className = 'daily-body';
+    const tEl = document.createElement('div');
+    tEl.className = 'daily-t';
+    tEl.textContent = (isToday || isPast || isTomorrow) ? chTitle(c) : '· · · · · · · ·';
+    const tag = document.createElement('span');
+    tag.className = 'daily-tag t-cap';
+    tag.textContent = isToday ? t('daily_today')
+      : isPast ? (done[c.d] ? t('daily_done') : t('daily_missed'))
+      : isTomorrow ? t('daily_tmrw') : t('daily_locked');
+    if (isToday || (isPast && done[c.d])) tag.classList.add('hot');
+    body.append(tEl);
+
+    if (isToday) {
+      const x = document.createElement('div');
+      x.className = 'daily-x';
+      x.textContent = chDesc(c);
+      body.appendChild(x);
+      const play = document.createElement('button');
+      play.id = 'daily-play';
+      play.className = 'slab slab-hot daily-play';
+      play.textContent = t('daily_play');
+      play.addEventListener('click', () => {
+        track('daily_play', { day: c.d });
+        resetGame();
+        S.challenge = c;
+        if (seenHowto()) showLegends(); else showHowto(true);
+      });
+      body.appendChild(play);
+      todayRow = row;
+    }
+    row.append(dn, body, tag);
+    list.appendChild(row);
+  }
+  show('s-daily');
+  if (todayRow) todayRow.scrollIntoView({ block: 'center' });
+}
+
 // ── boot ──────────────────────────────────────────────────────────────────────
 let boardReturn = 's3';
 function wire() {
   $('btn-start').addEventListener('click', () => {
     track('game_start');
     resetGame();
+    S.challenge = null;
     if (seenHowto()) showLegends(); else showHowto(true);
   });
+  $('daily-btn').addEventListener('click', showDaily);
+  $('daily-close').addEventListener('click', () => show('s1'));
   $('howto-link').addEventListener('click', () => showHowto(false));
   $('ht-next').addEventListener('click', htNext);
   $('btn-lang').addEventListener('click', () => {
     const to = getLang() === 'he' ? 'en' : 'he';
     setLang(to);
     updateLangButton();
+    updateDailyBtn();
     track('lang_switch', { to });
   });
   $('btn-skip-team').addEventListener('click', () => skip('team'));
@@ -877,14 +972,15 @@ function wire() {
   $('btn-next-match').addEventListener('click', nextMatch);
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
   $('btn-share').addEventListener('click', () => {
-    track('share', { stage: S.journey ? S.journey.finalStage : 'unknown' });
-    shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName).catch(console.error);
+    track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
+    const daily = S.challenge ? { day: S.challenge.d, title: S.challenge.t_en } : null;
+    shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily).catch(console.error);
   });
 }
 
 applyStatic();
 loadData()
-  .then(() => { wire(); updateLangButton(); show('s1'); })
+  .then(() => { wire(); updateLangButton(); updateDailyBtn(); show('s1'); })
   .catch(err => {
     console.error('load failed', err);
     document.querySelector('#loading .load-cap').textContent = t('load_fail');

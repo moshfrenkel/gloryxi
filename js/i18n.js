@@ -115,6 +115,19 @@ const D = {
   share:      { en: 'SHARE', he: 'שתף' },
   again:      { en: 'PLAY AGAIN', he: 'עוד משחק' },
 
+  // daily challenge
+  daily_btn:  { en: (n) => 'DAILY CHALLENGE · DAY ' + n, he: (n) => 'האתגר היומי · יום ' + n },
+  daily_title:{ en: 'THE DAILY CHALLENGE', he: 'האתגר היומי' },
+  daily_big:  { en: 'ONE A DAY.<br>UNTIL THE FINAL.', he: 'אחד ביום.<br>עד הגמר.' },
+  daily_sub:  { en: '39 DAYS · ONLY TODAY IS OPEN · PROOF GOES TO THE GROUP', he: '39 ימים · רק היום פתוח · ההוכחה בקבוצה' },
+  daily_play: { en: 'PLAY TODAY\'S CHALLENGE', he: 'שחק את האתגר של היום' },
+  daily_today:{ en: 'TODAY', he: 'היום' },
+  daily_tmrw: { en: 'TOMORROW', he: 'מחר' },
+  daily_done: { en: 'PLAYED', he: 'שוחק' },
+  daily_missed:{ en: 'MISSED', he: 'הוחמץ' },
+  daily_locked:{ en: 'LOCKED', he: 'נעול' },
+  daily_back: { en: 'BACK', he: 'חזרה' },
+
   // misc
   pick_of:    { en: (n) => 'PICK ' + n + ' OF 11', he: (n) => 'בחירה ' + n + ' מתוך 11' },
   pick_n:     { en: (n) => 'PICK ' + n + '/11', he: (n) => 'בחירה ' + n + '/11' },

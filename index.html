@@ -68,6 +68,10 @@
     <div class="s1-tag t-cap" data-i18n="s1tag">BUILD YOUR ALL-TIME XI.<br>SURVIVE THE TOURNAMENT.</div>
   </div>
   <button id="btn-start" class="slab slab-hot" data-i18n="kickoff">KICK OFF</button>
+  <button id="daily-btn" class="slab daily-strip" hidden>
+    <svg width="17" height="17" viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="3" width="15" height="13" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="1.5" y1="7.5" x2="16.5" y2="7.5" stroke="currentColor" stroke-width="1.6"/><line x1="5.5" y1="1" x2="5.5" y2="4.5" stroke="currentColor" stroke-width="1.6"/><line x1="12.5" y1="1" x2="12.5" y2="4.5" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="11.8" r="2.4" fill="currentColor"/></svg>
+    <span id="daily-btn-label"></span>
+  </button>
   <button id="howto-link" class="t-cap" data-i18n="howto_link">HOW TO PLAY</button>
   <div class="footer-note t-cap" data-i18n="footer">Not affiliated with FIFA · Data: Fjelstul World Cup Database (CC-BY-SA 4.0) · No player photos<br>No cookies · anonymous play counts only (visits &amp; games) · no personal data</div>
 </div>
@@ -112,6 +116,22 @@
   </div>
   <div class="ht-dashes" aria-hidden="true"><i id="htd-1"></i><i id="htd-2"></i><i id="htd-3"></i></div>
   <button id="ht-next" class="slab slab-hot"></button>
+</div>
+
+<!-- S-DAILY — daily challenge board -->
+<div id="s-daily" class="screen">
+  <div class="status-strip">
+    <div class="t-cap" data-i18n="daily_title">THE DAILY CHALLENGE</div>
+  </div>
+  <div class="daily-head">
+    <div class="daily-big" data-i18n="daily_big">ONE A DAY.<br>UNTIL THE FINAL.</div>
+    <div class="t-cap daily-sub" data-i18n="daily_sub">39 DAYS · ONLY TODAY IS OPEN · PROOF GOES TO THE GROUP</div>
+  </div>
+  <div id="daily-list" role="list" aria-label="Daily challenges"></div>
+  <button id="daily-close" class="board-strip board-strip-close">
+    <span class="t-cap" data-i18n="daily_back">BACK</span>
+    <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 1 L7 8 L13 1" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
+  </button>
 </div>
 
 <!-- S0 — HALL OF LEGENDS (captain's pick) -->

@@ -33,7 +33,7 @@ async function loadAnton() {
   catch (e) { /* fallback fonts are fine */ }
 }
 
-export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, teamName) {
+export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, teamName, daily) {
   teamName = (teamName || 'YOUR XI').toUpperCase();
   await loadAnton();
   const W = 1080, H = 1350;
@@ -59,6 +59,23 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
   x.fillStyle = BONE;
   x.font = '30px "Courier New", monospace';
   x.fillText(`${R.w}W ${R.d}D ${R.l}L   GOALS ${R.gf}-${R.ga}`, 60, 215);
+
+  // daily challenge badge — top-right gold slab
+  if (daily) {
+    const tag = 'DAILY #' + daily.day;
+    x.font = '34px Anton, "Arial Narrow", sans-serif';
+    const tw = x.measureText(tag).width;
+    x.save();
+    x.translate(W - 70 - tw / 2, 86);
+    x.rotate(0.05);
+    x.fillStyle = GOLD;
+    x.fillRect(-tw / 2 - 18, -30, tw + 36, 52);
+    x.fillStyle = INK;
+    x.textAlign = 'center';
+    x.fillText(tag, 0, 9);
+    x.restore();
+    x.textAlign = 'left';
+  }
 
   // pitch zone — real grass with TV mowing stripes
   const PX = 60, PY = 260, PW = W - 120, PH = 920;
@@ -134,7 +151,8 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
       await navigator.share({
         files: [file],
         title: 'GloryXI',
-        text: teamName + ' — ' + verdict + '. Build your own all-time XI: https://moshfrenkel.github.io/gloryxi/',
+        text: (daily ? 'GloryXI Daily #' + daily.day + ' · ' + daily.title + '\n' : '') +
+          teamName + ' — ' + verdict + '. Build your own all-time XI: https://moshfrenkel.github.io/gloryxi/',
       });
       return;
     } catch (e) { /* cancelled — fall through to download */ }

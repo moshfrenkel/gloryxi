@@ -625,3 +625,40 @@ html[data-lang="he"] .joker-title,
 html[data-lang="he"] .name-title,
 html[data-lang="he"] .ht-title,
 html[data-lang="he"] .verdict-stage { font-family: system-ui, 'Segoe UI', sans-serif; font-weight: 800; }
+
+/* ── daily challenge (V5.1) ──────────────────────────────── */
+.daily-strip {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: none; color: var(--gold); border: 1px solid var(--gold);
+  font-size: 17px; margin-top: 10px; padding: 12px 0 10px;
+}
+#s-daily { padding-bottom: 0; }
+.daily-head { padding: 18px 24px 10px; }
+.daily-big {
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: clamp(30px, 9vw, 42px); line-height: 1.04; color: var(--bone);
+}
+html[data-lang="he"] .daily-big { direction: rtl; font-family: system-ui, 'Segoe UI', sans-serif; font-weight: 800; }
+html[data-lang="he"] .daily-sub, html[data-lang="he"] .daily-x, html[data-lang="he"] .daily-t { direction: rtl; }
+.daily-sub { margin-top: 8px; }
+#daily-list { flex: 1; overflow-y: auto; padding: 6px 0 12px; }
+.daily-row {
+  display: flex; align-items: baseline; gap: 14px;
+  padding: 11px 24px; border-bottom: 1px solid rgba(237,232,223,0.14);
+}
+.daily-dn { font-family: 'Courier New', monospace; font-size: 18px; color: var(--grey); flex: none; width: 30px; }
+.daily-body { flex: 1; }
+.daily-t { font-family: 'Anton', 'Arial Narrow', sans-serif; font-size: 16px; color: var(--bone); letter-spacing: 0.03em; }
+html[data-lang="he"] .daily-t { font-family: system-ui, 'Segoe UI', sans-serif; font-weight: 700; letter-spacing: 0; }
+.daily-x { font-size: 13.5px; color: var(--bone); opacity: 0.85; line-height: 1.5; margin-top: 5px; max-width: 300px; }
+.daily-tag { flex: none; font-size: 9.5px; border: 1px solid var(--hair); padding: 2px 8px; }
+.daily-tag.hot { border-color: var(--gold); color: var(--gold); }
+.daily-row.locked .daily-t { color: var(--grey); opacity: 0.55; }
+.daily-row.past { opacity: 0.6; }
+.daily-row.today {
+  background: rgba(245,197,24,0.07);
+  border-top: 1px solid var(--gold); border-bottom: 1px solid var(--gold);
+  padding-top: 16px; padding-bottom: 16px;
+}
+.daily-row.today .daily-dn, .daily-row.today .daily-t { color: var(--gold); }
+.daily-play { width: 100%; margin: 14px 0 0; font-size: 19px; padding: 13px 0 11px; }
