@@ -23,13 +23,22 @@
 
 <div id="loading" class="screen active">
   <div class="load-mark">XI</div>
-  <div class="load-cap">LOADING SQUADS</div>
+  <div class="load-cap" data-i18n="loading">LOADING SQUADS</div>
 </div>
 
 <!-- S1 — THE SLEEVE -->
 <div id="s1" class="screen">
   <div class="reg-marks" aria-hidden="true"></div>
   <div class="vinyl-rings" aria-hidden="true"></div>
+  <button id="btn-lang" aria-label="Switch language">
+    <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" stroke-width="1.1"/>
+      <ellipse cx="8" cy="8" rx="3" ry="6.6" fill="none" stroke="currentColor" stroke-width="1.1"/>
+      <line x1="1.4" y1="8" x2="14.6" y2="8" stroke="currentColor" stroke-width="1.1"/>
+      <path d="M2.6 4.6 Q8 6.4 13.4 4.6 M2.6 11.4 Q8 9.6 13.4 11.4" fill="none" stroke="currentColor" stroke-width="0.9"/>
+    </svg>
+    <span id="lang-label">עברית</span>
+  </button>
   <div class="s1-spine t-cap" aria-hidden="true">EVERY NATION · EVERY YEAR · 1930—2026</div>
   <div class="s1-stack">
     <svg class="trophy-hero" viewBox="0 0 200 250" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Trophy">
@@ -53,34 +62,73 @@
       <!-- star -->
       <polygon points="100,52 105,66 120,66 108,75 112,89 100,80 88,89 92,75 80,66 95,66" fill="#101010" opacity="0.85"/>
     </svg>
-    <div class="s1-q">CAN YOU WIN<br>IT ALL IN 2026?</div>
+    <div class="s1-q" data-i18n="s1q">CAN YOU WIN<br>IT ALL IN 2026?</div>
     <div class="s1-logo">GLORY<span class="s1-logo-xi">XI</span></div>
     <div class="s1-rule" aria-hidden="true"></div>
-    <div class="s1-tag t-cap">BUILD YOUR ALL-TIME XI.<br>SURVIVE THE TOURNAMENT.</div>
+    <div class="s1-tag t-cap" data-i18n="s1tag">BUILD YOUR ALL-TIME XI.<br>SURVIVE THE TOURNAMENT.</div>
   </div>
-  <button id="btn-start" class="slab slab-hot">KICK OFF</button>
-  <div class="footer-note t-cap">Not affiliated with FIFA · Data: Fjelstul World Cup Database (CC-BY-SA 4.0) · No player photos<br>No cookies · anonymous play counts only (visits &amp; games) · no personal data</div>
+  <button id="btn-start" class="slab slab-hot" data-i18n="kickoff">KICK OFF</button>
+  <button id="howto-link" class="t-cap" data-i18n="howto_link">HOW TO PLAY</button>
+  <div class="footer-note t-cap" data-i18n="footer">Not affiliated with FIFA · Data: Fjelstul World Cup Database (CC-BY-SA 4.0) · No player photos<br>No cookies · anonymous play counts only (visits &amp; games) · no personal data</div>
+</div>
+
+<!-- S-HOWTO — 3-step how to play (first run + on demand) -->
+<div id="s-howto" class="screen">
+  <div class="ht-kicker t-cap" data-i18n="ht_title">HOW TO PLAY</div>
+  <div class="ht-zone">
+    <div class="ht-art">
+      <svg id="ht-art-1" viewBox="0 0 200 120" aria-hidden="true">
+        <rect x="22" y="18" width="92" height="62" fill="none" stroke="#EDE8DF" stroke-width="1.5"/>
+        <rect x="30" y="26" width="76" height="46" fill="#2BD4C0" opacity="0.85"/>
+        <rect x="126" y="18" width="56" height="62" fill="none" stroke="#EDE8DF" stroke-width="1.5"/>
+        <text x="154" y="60" text-anchor="middle" font-family="Arial Narrow, Arial" font-weight="bold" font-size="26" fill="#F5C518">1970</text>
+        <path d="M52 100 L88 100 M70 88 L70 100" stroke="#8A8378" stroke-width="1.5" fill="none"/>
+        <path d="M140 95 q8 12 24 4" stroke="#2BD4C0" stroke-width="2" fill="none"/>
+        <path d="M160 102 l6 -4 l-7 -2 z" fill="#2BD4C0"/>
+      </svg>
+      <svg id="ht-art-2" viewBox="0 0 200 120" aria-hidden="true" style="display:none">
+        <rect x="30" y="14" width="140" height="26" fill="none" stroke="#EDE8DF" stroke-width="1.5"/>
+        <circle cx="46" cy="27" r="7" fill="#2BD4C0"/>
+        <line x1="62" y1="27" x2="130" y2="27" stroke="#8A8378" stroke-width="2"/>
+        <text x="160" y="33" text-anchor="middle" font-family="Arial Narrow, Arial" font-weight="bold" font-size="16" fill="#F5C518">87</text>
+        <path d="M100 46 L100 66 M92 58 L100 67 L108 58" stroke="#2BD4C0" stroke-width="2" fill="none"/>
+        <rect x="58" y="72" width="84" height="34" fill="none" stroke="#EDE8DF" stroke-width="1.5"/>
+        <circle cx="80" cy="89" r="6" fill="none" stroke="#2BD4C0" stroke-width="1.6"/>
+        <circle cx="100" cy="89" r="6" fill="#2BD4C0"/>
+        <circle cx="120" cy="89" r="6" fill="none" stroke="#2BD4C0" stroke-width="1.6"/>
+        <text x="100" y="116" text-anchor="middle" font-family="Arial Narrow, Arial" font-weight="bold" font-size="11" fill="#8A8378">× 11</text>
+      </svg>
+      <svg id="ht-art-3" viewBox="0 0 200 120" aria-hidden="true" style="display:none">
+        <path d="M30 96 L58 96 L58 60 L86 60 L86 30 L114 30 L114 60 L142 60 L142 96 L170 96" fill="none" stroke="#EDE8DF" stroke-width="1.5"/>
+        <path d="M88 12 Q76 14 78 26 Q80 38 94 42 M112 12 Q124 14 122 26 Q120 38 106 42" stroke="#F5C518" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M90 8 L110 8 Q110 36 100 44 Q90 36 90 8 Z" fill="#F5C518"/>
+        <rect x="93" y="44" width="14" height="6" fill="#F5C518"/>
+        <circle cx="48" cy="84" r="4" fill="#2BD4C0"/><circle cx="100" cy="84" r="4" fill="#2BD4C0"/><circle cx="152" cy="84" r="4" fill="#2BD4C0"/>
+      </svg>
+    </div>
+    <div class="ht-step t-cap" id="ht-step">1 / 3</div>
+    <div class="ht-title" id="ht-title"></div>
+    <div class="ht-body" id="ht-body"></div>
+  </div>
+  <div class="ht-dashes" aria-hidden="true"><i id="htd-1"></i><i id="htd-2"></i><i id="htd-3"></i></div>
+  <button id="ht-next" class="slab slab-hot"></button>
 </div>
 
 <!-- S0 — HALL OF LEGENDS (captain's pick) -->
 <div id="s0" class="screen">
   <div class="status-strip">
-    <div class="t-cap legend-kicker">PICK 1 OF 11 · YOUR CAPTAIN</div>
+    <div class="t-cap legend-kicker" data-i18n="s0_kicker">STEP 1 · YOUR LEGEND</div>
   </div>
   <div class="legend-head">
-    <div class="legend-title">HALL OF<br>LEGENDS</div>
-    <div class="t-cap legend-sub">CHOOSE ONE ALL-TIME GREAT — ANY ERA, ANY POSITION.<br>HIS NATION IS THEN YOURS FOR GOOD.</div>
+    <div class="legend-title" data-i18n="s0_title">HALL OF<br>LEGENDS</div>
+    <div class="t-cap legend-sub" data-i18n="s0_sub">PICK ONE ALL-TIME GREAT — HE GOES STRAIGHT INTO YOUR TEAM.<br>THE OTHER 10? RANDOM DRAWS. GOOD LUCK.</div>
   </div>
   <div id="legend-list" role="list" aria-label="Legends"></div>
-  <button id="legend-skip" class="board-strip">
-    <span class="t-cap">SKIP — STRAIGHT TO THE DRAW</span>
-    <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M2 1 L8 5 L2 9" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
-  </button>
 </div>
 
 <!-- S2 — THE DRAW (auto split-flap) -->
 <div id="s2" class="screen">
-  <div class="s2-spine t-cap" aria-hidden="true">THE DRAW</div>
+  <div class="s2-spine t-cap" aria-hidden="true" data-i18n="s2_spine">THE DRAW</div>
   <div class="s2-round t-cap" id="s2-round"></div>
   <div class="spin-zone">
     <div class="spin-flag-frame">
@@ -92,9 +140,10 @@
   </div>
   <div id="draw-header" class="draw-stamp" aria-live="assertive"></div>
   <div class="skip-row">
-    <button id="btn-skip-team" class="skip-box t-cap">NEW NATION</button>
-    <button id="btn-skip-year" class="skip-box t-cap">NEW YEAR</button>
+    <button id="btn-skip-team" class="skip-box t-cap" data-i18n="skip_team">NEW NATION</button>
+    <button id="btn-skip-year" class="skip-box t-cap" data-i18n="skip_year">NEW YEAR</button>
   </div>
+  <div class="hint-line t-cap" data-i18n="s2_hint">DRAWING YOUR NATION AND YEAR…</div>
 </div>
 
 <!-- S3 — SQUAD SHEET -->
@@ -108,13 +157,15 @@
     <img id="squad-flag" class="squad-flag" alt="" draggable="false">
     <div id="squad-title" class="squad-title"></div>
     <div class="skip-row skip-row-s3">
-      <button id="btn-skip-team-s3" class="skip-box t-cap">NEW NATION</button>
-      <button id="btn-skip-year-s3" class="skip-box t-cap">NEW YEAR</button>
+      <button id="btn-skip-team-s3" class="skip-box t-cap" data-i18n="skip_team">NEW NATION</button>
+      <button id="btn-skip-year-s3" class="skip-box t-cap" data-i18n="skip_year">NEW YEAR</button>
     </div>
   </div>
+  <div class="hint-line t-cap" data-i18n="s3_hint">TAP A PLAYER, THEN TAP A POSITION</div>
   <div id="player-list" role="list" aria-label="Squad"></div>
   <button id="board-toggle" class="board-strip">
-    <span class="t-cap">THE BOARD</span>
+    <svg width="22" height="15" viewBox="0 0 22 15" aria-hidden="true"><rect x="1" y="1" width="20" height="13" fill="none" stroke="#2BD4C0" stroke-width="1.3"/><line x1="11" y1="1" x2="11" y2="14" stroke="#2BD4C0" stroke-width="1.3"/><circle cx="11" cy="7.5" r="2.6" fill="none" stroke="#2BD4C0" stroke-width="1.3"/></svg>
+    <span class="t-cap" data-i18n="board_see">SEE MY TEAM SO FAR</span>
     <span id="board-count" class="board-count">0/11</span>
     <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 9 L7 2 L13 9" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
   </button>
@@ -123,8 +174,8 @@
 <!-- S-JOKER — post-draft surprise -->
 <div id="s-joker" class="screen">
   <div class="joker-head">
-    <div class="t-cap joker-kicker">SURPRISE — THE JOKER</div>
-    <div class="joker-title">ONE LAST CALL,<br>GAFFER</div>
+    <div class="t-cap joker-kicker" data-i18n="jk_kicker">SURPRISE — THE JOKER</div>
+    <div class="joker-title" data-i18n="jk_title">ONE LAST CALL,<br>GAFFER</div>
     <div class="t-cap joker-sub" id="joker-sub">YOUR XI IS COMPLETE. SWAP ONE PLAYER FOR A FRESH DRAW — OR TRUST YOUR BOARD.</div>
   </div>
   <div class="board-pitch joker-pitch">
@@ -138,27 +189,27 @@
     <div id="joker-slots"></div>
   </div>
   <div class="action-row">
-    <button id="joker-swap" class="slab slab-gold">SWAP ONE</button>
-    <button id="joker-keep" class="slab slab-hot">PLAY</button>
+    <button id="joker-swap" class="slab slab-gold" data-i18n="jk_swap">SWAP ONE</button>
+    <button id="joker-keep" class="slab slab-hot" data-i18n="jk_keep">PLAY</button>
   </div>
 </div>
 
 <!-- S-NAME — name your XI -->
 <div id="s-name" class="screen">
   <div class="name-zone">
-    <div class="t-cap name-kicker">FINAL TOUCH</div>
-    <div class="name-title">NAME<br>YOUR XI</div>
+    <div class="t-cap name-kicker" data-i18n="nm_kicker">FINAL TOUCH</div>
+    <div class="name-title" data-i18n="nm_title">NAME<br>YOUR XI</div>
     <input id="team-name" class="name-input" type="text" maxlength="18" autocomplete="off"
-           autocapitalize="characters" spellcheck="false" placeholder="THE INVINCIBLES">
-    <div class="t-cap name-hint">THIS GOES ON THE SCOREBOARD — AND ON THE SHARE CARD.</div>
+           autocapitalize="characters" spellcheck="false" placeholder="THE INVINCIBLES" data-i18n-ph="nm_ph">
+    <div class="t-cap name-hint" data-i18n="nm_hint">THIS GOES ON THE SCOREBOARD — AND ON THE SHARE CARD.</div>
   </div>
-  <button id="btn-name-lock" class="slab slab-hot">LOCK IT IN</button>
+  <button id="btn-name-lock" class="slab slab-hot" data-i18n="nm_lock">LOCK IT IN</button>
 </div>
 
 <!-- S4 — THE BOARD (overlay) -->
 <div id="s4" class="screen">
   <div class="board-head">
-    <span class="t-cap">THE BOARD — 4·4·2</span>
+    <span class="t-cap" data-i18n="s4_head">MY TEAM — 4·4·2</span>
     <span id="board-count-2" class="board-count"></span>
   </div>
   <div class="board-pitch">
@@ -174,7 +225,7 @@
     <div id="board-slots"></div>
   </div>
   <button id="board-close" class="board-strip board-strip-close">
-    <span class="t-cap">BACK TO THE SQUAD</span>
+    <span class="t-cap" data-i18n="s4_close">BACK TO THE SQUAD</span>
     <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 1 L7 8 L13 1" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
   </button>
 </div>
@@ -182,8 +233,9 @@
 <!-- S5 — THE VIDIPRINTER -->
 <div id="s5" class="screen">
   <div class="s5-head">
-    <div class="t-cap s5-kicker">RESULTS SERVICE</div>
-    <div class="s5-title">THE&nbsp;TOURNAMENT</div>
+    <div class="t-cap s5-kicker" data-i18n="s5_kicker">RESULTS SERVICE</div>
+    <div class="s5-title" data-i18n="s5_title">THE&nbsp;TOURNAMENT</div>
+    <div class="hint-line t-cap" data-i18n="s5_hint">TAP THE BUTTON TO PLAY EACH MATCH</div>
   </div>
   <div id="printer-feed" role="log" aria-live="polite"></div>
   <button id="btn-next-match" class="slab slab-hot">RUN MATCH 1</button>
@@ -193,12 +245,12 @@
 <div id="s6" class="screen">
   <div class="reg-marks" aria-hidden="true"></div>
   <div class="verdict-zone">
-    <div class="t-cap verdict-kicker">FINAL RESULT</div>
+    <div class="t-cap verdict-kicker" data-i18n="s6_kicker">FINAL RESULT</div>
     <div id="verdict-stage" class="verdict-stage"></div>
     <div id="verdict-record" class="verdict-record"></div>
     <div id="verdict-avg" class="t-cap verdict-avg"></div>
   </div>
-  <div class="t-cap tracklist-label">YOUR ALL-TIME XI</div>
+  <div class="t-cap tracklist-label" data-i18n="xi_label">YOUR ALL-TIME XI</div>
   <div class="result-pitch">
     <svg viewBox="0 0 375 520" preserveAspectRatio="none" class="pitch-lines" aria-hidden="true">
       <rect x="12" y="12" width="351" height="496" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
@@ -210,8 +262,8 @@
     <div id="result-slots"></div>
   </div>
   <div class="action-row">
-    <button id="btn-share" class="slab slab-hot">SHARE</button>
-    <button id="btn-again" class="slab slab-line">PLAY AGAIN</button>
+    <button id="btn-share" class="slab slab-hot" data-i18n="share">SHARE</button>
+    <button id="btn-again" class="slab slab-line" data-i18n="again">PLAY AGAIN</button>
   </div>
 </div>
 

@@ -6,6 +6,7 @@
 
 import { simulateTournament, computeTeamScores, computeTeamElo } from './sim.js';
 import { shareResult } from './share.js';
+import { t, getLang, setLang, applyStatic } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -21,7 +22,7 @@ const SLOT_LABEL = {
   CM1: 'CM 1', CM2: 'CM 2', RM: 'RM', LM: 'LM', ST1: 'ST 1', ST2: 'ST 2',
 };
 const POS_ORDER = ['GK', 'DF', 'MF', 'FW'];
-const POS_TITLE = { GK: 'GOALKEEPERS', DF: 'DEFENDERS', MF: 'MIDFIELDERS', FW: 'FORWARDS' };
+const posTitle = (pos) => t('pos_' + pos);
 
 // board slot coordinates, % of pitch (x, y) — GK bottom, STs top
 const SLOT_XY = {
@@ -152,7 +153,7 @@ function startDraw(constraint) {
   S.spinning = true;
 
   show('s2');
-  $('s2-round').textContent = 'PICK ' + (Object.keys(S.xi).length + 1) + ' OF 11';
+  $('s2-round').textContent = t('pick_of', Object.keys(S.xi).length + 1);
   const stamp = $('draw-header');
   stamp.textContent = '';
   stamp.classList.remove('stamped');
@@ -220,7 +221,7 @@ function showSquad() {
   const { c, y } = S.draw;
   show('s3');
   renderPips();
-  $('round-label').textContent = 'PICK ' + (Object.keys(S.xi).length + 1) + '/11';
+  $('round-label').textContent = t('pick_n', Object.keys(S.xi).length + 1);
   $('squad-spine').textContent = (c + ' · ' + y).toUpperCase();
   const sf = $('squad-flag');
   sf.src = flagSrc(c);
@@ -247,7 +248,7 @@ function showSquad() {
     rule.className = 'pos-rule';
     const lbl = document.createElement('span');
     lbl.className = 'pr-label';
-    lbl.textContent = POS_TITLE[pos];
+    lbl.textContent = posTitle(pos);
     const n = document.createElement('span');
     n.className = 'pos-n';
     n.textContent = group.length;
@@ -278,8 +279,8 @@ function playerRow(p) {
   meta.className = 'p-meta';
   const bits = [p.sp || p.p2 || p.p];
   if (p.club) bits.push(p.club);
-  if (p.caps) bits.push(p.caps + ' caps');
-  if (p.g) bits.push(p.g + ' goals');
+  if (p.caps) bits.push(p.caps + ' ' + t('caps'));
+  if (p.g) bits.push(p.g + ' ' + t('goals_m'));
   meta.textContent = bits.join(' · ');
   idBox.append(nm, meta);
 
@@ -304,7 +305,7 @@ function toggleSlotStrip(row, p) {
   strip.className = 'slot-strip';
   const cap = document.createElement('span');
   cap.className = 't-cap';
-  cap.textContent = 'PLACE AT';
+  cap.textContent = t('place_at');
   strip.appendChild(cap);
   for (const slot of slotsForPos(p.p)) {
     const b = document.createElement('button');
@@ -323,6 +324,7 @@ function toggleSlotStrip(row, p) {
 
 function place(p, slot) {
   if (S.xi[slot]) return;
+  if ($('s0').classList.contains('active')) track('legend_pick', { name: p.n });
   S.xi[slot] = p;
   S.used.add(p.c);
   renderBoard();
@@ -339,14 +341,14 @@ function xiCount() { return SLOTS.filter(s => S.xi[s]).length; }
 // ── Joker: swap one player for a fresh draw, or keep the XI ──────────────────
 function showJoker() {
   show('s-joker');
-  $('joker-sub').textContent = 'YOUR XI IS COMPLETE. SWAP ONE PLAYER FOR A FRESH DRAW — OR TRUST YOUR BOARD.';
+  $('joker-sub').textContent = t('jk_sub1');
   document.querySelector('.joker-pitch').classList.remove('swap-mode');
   renderPitchInto('joker-slots', true);
   $('joker-swap').style.visibility = 'visible';
 }
 
 function enterSwapMode() {
-  $('joker-sub').textContent = 'TAP THE PLAYER YOU WANT TO REPLACE.';
+  $('joker-sub').textContent = t('jk_sub2');
   document.querySelector('.joker-pitch').classList.add('swap-mode');
   $('joker-swap').style.visibility = 'hidden';
   renderPitchInto('joker-slots', true, (slot) => {
@@ -449,7 +451,7 @@ function showLegends() {
     rule.className = 'pos-rule';
     const lbl = document.createElement('span');
     lbl.className = 'pr-label';
-    lbl.textContent = POS_TITLE[pos];
+    lbl.textContent = posTitle(pos);
     const n = document.createElement('span');
     n.className = 'pos-n';
     n.textContent = group.length;
@@ -473,15 +475,8 @@ function legendRow(p) {
 }
 
 // ── S5 tournament (vidiprinter) ───────────────────────────────────────────────
-const STAGE_NAME = {
-  GROUP: 'GROUP', R32: 'ROUND OF 32', R16: 'ROUND OF 16',
-  QF: 'QUARTER-FINAL', SF: 'SEMI-FINAL', F: 'THE FINAL',
-};
-const STAGE_VERDICT = {
-  GROUP_EXIT: 'OUT — GROUP STAGE', R32: 'OUT — ROUND OF 32', R16: 'OUT — ROUND OF 16',
-  QF: 'OUT — QUARTER-FINAL', SF: 'OUT — SEMI-FINAL', F: 'BEATEN FINALISTS',
-  CHAMPION: 'CHAMPIONS OF THE WORLD',
-};
+const stageName = (s) => t('st_' + s);
+const stageVerdict = (s) => t('vd_' + s);
 
 function startTournament() {
   // naming step first — the name follows the team everywhere
@@ -511,9 +506,9 @@ function runTournament() {
   show('s5');
   const feed = $('printer-feed');
   feed.innerHTML = '';
-  addLine('faint', '— RESULTS SERVICE OPEN —');
+  addLine('faint', t('feed_open'));
   const J0 = S.journey;
-  addLine('gold', S.teamName + ' TAKES ' + J0.replaced.toUpperCase() + "'S PLACE — GROUP " + J0.groupKey);
+  addLine('gold', t('takes_place', S.teamName, J0.replaced, J0.groupKey));
 
   // strength report — FIFA-style rating panel, so every defeat is explainable
   const groupOpps = J0.journey.filter(m => m.stage === 'GROUP').map(m => m.opponent);
@@ -524,7 +519,7 @@ function runTournament() {
   S.printing = false;
   const btn = $('btn-next-match');
   btn.disabled = false;
-  btn.textContent = 'RUN MATCH 1';
+  btn.textContent = t('run_match', 1);
 }
 
 function addLine(cls, text) {
@@ -571,7 +566,7 @@ function nextMatch() {
   const m = J.journey[S.feedIdx];
   S.feedIdx++;
   S.matchNo++;
-  const stageTag = m.stage === 'GROUP' ? 'GROUP MATCH ' + S.matchNo + ' · GROUP ' + J.groupKey : STAGE_NAME[m.stage] || m.stage;
+  const stageTag = m.stage === 'GROUP' ? t('group_match', S.matchNo, J.groupKey) : stageName(m.stage);
   const win = m.scoreFor > m.scoreAgainst || (m.note && m.note.startsWith('(pens') && m.winnerIsA);
 
   renderScoreboard(m, stageTag, () => {
@@ -579,12 +574,12 @@ function nextMatch() {
     const last = S.feedIdx >= J.journey.length;
     if (last) {
       if (m.stage === 'GROUP') printGroupTable(J);
-      addLine('verdict', STAGE_VERDICT[J.finalStage] || J.finalStage);
+      addLine('verdict', stageVerdict(J.finalStage));
       if (J.finalStage === 'CHAMPION') flashWin();
-      btn.textContent = 'FULL TIME';
+      btn.textContent = t('full_time');
     } else {
       const nm = J.journey[S.feedIdx];
-      btn.textContent = nm.stage === 'GROUP' ? 'RUN MATCH ' + (S.matchNo + 1) : 'PLAY ' + (STAGE_NAME[nm.stage] || nm.stage);
+      btn.textContent = nm.stage === 'GROUP' ? t('run_match', S.matchNo + 1) : t('play_stage', stageName(nm.stage));
       if (m.stage === 'GROUP' && nm.stage !== 'GROUP') printGroupTable(J);
     }
     btn.disabled = false;
@@ -599,9 +594,9 @@ function renderStrengthPanel(xiSim, groupOpps) {
   const sc = computeTeamScores(xiSim);
   const elo = Math.round(computeTeamElo(xiSim));
   const stats = [
-    { label: 'ATT', v: Math.round(sc.attack) },
-    { label: 'MID', v: Math.round(sc.midfield) },
-    { label: 'DEF', v: Math.round(sc.defense) },
+    { label: t('sp_att'), v: Math.round(sc.attack) },
+    { label: t('sp_mid'), v: Math.round(sc.midfield) },
+    { label: t('sp_def'), v: Math.round(sc.defense) },
   ];
   const weak = stats.reduce((a, b) => a.v <= b.v ? a : b);
 
@@ -618,7 +613,7 @@ function renderStrengthPanel(xiSim, groupOpps) {
   ovr.textContent = elo;
   const ovrCap = document.createElement('span');
   ovrCap.className = 'sp-ovr-cap';
-  ovrCap.textContent = 'SQUAD ELO';
+  ovrCap.textContent = t('sp_elo');
   head.append(hLabel, ovr, ovrCap);
   panel.appendChild(head);
 
@@ -637,7 +632,7 @@ function renderStrengthPanel(xiSim, groupOpps) {
     bar.appendChild(fill);
     const lbl = document.createElement('div');
     lbl.className = 'sp-label';
-    lbl.textContent = st.label + (st === weak ? ' · WEAK LINK' : '');
+    lbl.textContent = st.label + (st === weak ? t('weak_link') : '');
     cell.append(num, bar, lbl);
     grid.appendChild(cell);
   }
@@ -759,16 +754,16 @@ function renderScoreboard(m, stageTag, cb) {
 }
 
 function printGroupTable(J) {
-  addLine('faint', '— FINAL TABLE · GROUP ' + J.groupKey + ' —');
-  const name = t => t === 'USER_XI' ? S.teamName : t.toUpperCase();
+  addLine('faint', t('final_table', J.groupKey));
+  const name = (tm) => tm === 'USER_XI' ? S.teamName : tm.toUpperCase();
   J.groupTable.forEach((r, i) => {
     const gd = r.gf - r.ga;
     const line = ' ' + (i + 1) + '  ' + name(r.team).slice(0, 14).padEnd(15) +
       String(r.pts).padStart(2) + 'PTS  ' + (gd >= 0 ? '+' : '') + gd;
     addLine(r.team === 'USER_XI' ? 'gold' : 'faint', line);
   });
-  const TH = { 1: 'THROUGH AS GROUP WINNERS', 2: 'THROUGH AS RUNNERS-UP', 3: 'THROUGH — ONE OF THE BEST THIRDS' };
-  if (J.finalStage !== 'GROUP_EXIT') addLine('gold', '— ' + (TH[J.rank] || 'THROUGH') + ' —');
+  const TH = { 1: t('through1'), 2: t('through2'), 3: t('through3') };
+  if (J.finalStage !== 'GROUP_EXIT') addLine('gold', '— ' + (TH[J.rank] || t('through')) + ' —');
 }
 
 function flashWin() {
@@ -788,11 +783,11 @@ function showResult() {
   const s6 = $('s6');
   s6.classList.toggle('champion', J.finalStage === 'CHAMPION');
 
-  $('verdict-stage').textContent = STAGE_VERDICT[J.finalStage] || J.finalStage;
+  $('verdict-stage').textContent = stageVerdict(J.finalStage);
   const R = J.record;
-  $('verdict-record').textContent = R.w + 'W ' + R.d + 'D ' + R.l + 'L   ·   GOALS ' + R.gf + '–' + R.ga;
+  $('verdict-record').textContent = t('record', R.w, R.d, R.l, R.gf, R.ga);
   const avg = Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
-  $('verdict-avg').textContent = 'AVERAGE RATING ' + avg + ' · 1930—2026';
+  $('verdict-avg').textContent = t('avg_rating', avg);
   document.querySelector('#s6 .tracklist-label').textContent = S.teamName;
 
   renderPitchInto('result-slots', true);
@@ -817,11 +812,58 @@ function resetGame() {
   updateBoardCount();
 }
 
+// ── how-to overlay (3 steps, first run + on demand) ──────────────────────────
+const HT_KEYS = [['ht1_t', 'ht1_b'], ['ht2_t', 'ht2_b'], ['ht3_t', 'ht3_b']];
+let htStep = 0, htFromStart = false;
+
+function seenHowto() { try { return localStorage.getItem('gxi_howto') === '1'; } catch (_) { return true; } }
+
+function showHowto(fromStart) {
+  htFromStart = fromStart;
+  htStep = 0;
+  renderHowto();
+  show('s-howto');
+}
+
+function renderHowto() {
+  for (let i = 1; i <= 3; i++) {
+    $('ht-art-' + i).style.display = (i === htStep + 1) ? '' : 'none';
+    $('htd-' + i).classList.toggle('on', i <= htStep + 1);
+  }
+  $('ht-step').textContent = (htStep + 1) + ' / 3';
+  $('ht-title').textContent = t(HT_KEYS[htStep][0]);
+  $('ht-body').textContent = t(HT_KEYS[htStep][1]);
+  $('ht-next').textContent = htStep < 2 ? t('ht_next') : (htFromStart ? t('ht_start') : t('ht_back'));
+}
+
+function htNext() {
+  if (htStep < 2) { htStep++; renderHowto(); return; }
+  try { localStorage.setItem('gxi_howto', '1'); } catch (_) { /* ok */ }
+  track('howto_done');
+  if (htFromStart) showLegends(); else show('s1');
+}
+
+// ── language ──────────────────────────────────────────────────────────────────
+function updateLangButton() {
+  $('lang-label').textContent = getLang() === 'he' ? 'English' : 'עברית';
+}
+
 // ── boot ──────────────────────────────────────────────────────────────────────
 let boardReturn = 's3';
 function wire() {
-  $('btn-start').addEventListener('click', () => { track('game_start'); resetGame(); showLegends(); });
-  $('legend-skip').addEventListener('click', () => startDraw(null));
+  $('btn-start').addEventListener('click', () => {
+    track('game_start');
+    resetGame();
+    if (seenHowto()) showLegends(); else showHowto(true);
+  });
+  $('howto-link').addEventListener('click', () => showHowto(false));
+  $('ht-next').addEventListener('click', htNext);
+  $('btn-lang').addEventListener('click', () => {
+    const to = getLang() === 'he' ? 'en' : 'he';
+    setLang(to);
+    updateLangButton();
+    track('lang_switch', { to });
+  });
   $('btn-skip-team').addEventListener('click', () => skip('team'));
   $('btn-skip-year').addEventListener('click', () => skip('year'));
   $('btn-skip-team-s3').addEventListener('click', () => skip('team'));
@@ -840,9 +882,10 @@ function wire() {
   });
 }
 
+applyStatic();
 loadData()
-  .then(() => { wire(); show('s1'); })
+  .then(() => { wire(); updateLangButton(); show('s1'); })
   .catch(err => {
     console.error('load failed', err);
-    document.querySelector('#loading .load-cap').textContent = 'LOAD FAILED — REFRESH';
+    document.querySelector('#loading .load-cap').textContent = t('load_fail');
   });
