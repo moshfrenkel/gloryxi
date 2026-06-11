@@ -16,7 +16,7 @@
 // savvy XI (legend95+avg75) ≈ 8-10% champion, uniform85 ≈ 18-20%,
 // casual (legend95+avg65) ≈ 1%, uniform60 ≈ 0.2%.
 // Previous values (1150 / 12) made avg75 = Argentina-level → 27% champion.
-const ELO_BASE  = 1225;
+const ELO_BASE  = 1213;
 const ELO_SCALE = 10;
 const EXP_COEF  = 0.50;
 
