@@ -60,25 +60,22 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
   x.font = '30px "Courier New", monospace';
   x.fillText(`${R.w}W ${R.d}D ${R.l}L   GOALS ${R.gf}-${R.ga}`, 60, 215);
 
-  // daily challenge badge — top-right gold slab
+  // daily challenge strip — full-width gold bar: day + name + the gist of the rule
   if (daily) {
-    const tag = 'DAILY #' + daily.day + (daily.ok === true ? ' ✓' : '');
-    x.font = '34px Anton, "Arial Narrow", sans-serif';
-    const tw = x.measureText(tag).width;
-    x.save();
-    x.translate(W - 70 - tw / 2, 86);
-    x.rotate(0.05);
+    const sy = 238, sh = 84;
     x.fillStyle = GOLD;
-    x.fillRect(-tw / 2 - 18, -30, tw + 36, 52);
+    x.fillRect(60, sy, W - 120, sh);
     x.fillStyle = INK;
     x.textAlign = 'center';
-    x.fillText(tag, 0, 9);
-    x.restore();
+    x.font = '30px Anton, "Arial Narrow", sans-serif';
+    x.fillText('DAILY #' + daily.day + ' · ' + daily.title + (daily.ok === true ? ' ✓' : daily.ok === false ? ' ✗' : ''), W / 2, sy + 35, W - 160);
+    x.font = '600 26px "Space Grotesk", "Segoe UI", sans-serif';
+    x.fillText(daily.gist || '', W / 2, sy + 68, W - 160);
     x.textAlign = 'left';
   }
 
-  // pitch zone — real grass with TV mowing stripes
-  const PX = 60, PY = 260, PW = W - 120, PH = 920;
+  // pitch zone — real grass with TV mowing stripes (shifted down under the daily strip)
+  const PX = 60, PY = daily ? 345 : 260, PW = W - 120, PH = daily ? 835 : 920;
   const STRIPES = 9;
   for (let i = 0; i < STRIPES; i++) {
     x.fillStyle = i % 2 ? '#287D40' : '#2F8F4A';

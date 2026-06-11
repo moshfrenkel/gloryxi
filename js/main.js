@@ -146,16 +146,33 @@ function pickCombo(constraint) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// challenge mode: if today's challenge requires specific nations, the draw
-// serves each missing one (random year) until the roster contains them.
-// A team-skip still dodges it for one draw — it comes back on the next.
+// challenge mode: required nations are served by the draw. Each plan entry is
+// {n: nation, at: pick number} — 'asap' fires on the next free draw, a number
+// waits for that pick, 'mid' resolves to a surprise pick 5-8. The same nation
+// may appear twice (e.g. Israel ×2): the one-country-once rule is bypassed for
+// forced draws, and already-placed players are filtered out of the squad sheet.
+function buildChallengePlan(c) {
+  if (!c || !c.req || !c.req.length) return null;
+  return c.req.map((n, i) => {
+    const at = c.reqAt ? c.reqAt[i] : 'asap';
+    return { n, at: at === 'mid' ? 5 + Math.floor(Math.random() * 4) : at, done: false };
+  });
+}
+
+function _challengeComboValid([c, y]) {
+  const squad = S.squads.get(c + '|' + y);
+  if (!squad) return false;
+  const placed = new Set(Object.values(S.xi));
+  return squad.some(p => !placed.has(p) && slotsForPos(p.p).length > 0);
+}
+
 function pickChallengeCombo() {
-  const req = S.challenge && S.challenge.req;
-  if (!req || !req.length) return null;
-  const have = new Set(Object.values(S.xi).map(p => p.c));
-  const missing = req.filter(n => !have.has(n));
-  if (!missing.length) return null;
-  const pool = S.combos.filter(c => c[0] === missing[0] && comboValid(c));
+  const plan = S.challengePlan;
+  if (!plan) return null;
+  const pickNum = Object.keys(S.xi).length + 1;
+  const due = plan.find(e => !e.done && (e.at === 'asap' || e.at <= pickNum));
+  if (!due) return null;
+  const pool = S.combos.filter(c => c[0] === due.n && _challengeComboValid(c));
   if (!pool.length) return null;
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -255,7 +272,9 @@ function showSquad() {
 
   const list = $('player-list');
   list.innerHTML = '';
-  const squad = (S.squads.get(c + '|' + y) || []).slice()
+  const placed = new Set(Object.values(S.xi));
+  const squad = (S.squads.get(c + '|' + y) || [])
+    .filter(p => !placed.has(p))
     .sort((a, b) => b.r - a.r);
 
   for (const pos of POS_ORDER) {
@@ -344,6 +363,10 @@ function place(p, slot) {
   if ($('s0').classList.contains('active')) track('legend_pick', { name: p.n });
   S.xi[slot] = p;
   S.used.add(p.c);
+  if (S.challengePlan) {
+    const e = S.challengePlan.find(x => !x.done && x.n === p.c);
+    if (e) e.done = true;
+  }
   renderBoard();
   renderPips();
   updateBoardCount();
@@ -799,8 +822,12 @@ function showResult() {
   if (S.challenge) {
     evt.daily = S.challenge.d;
     if (S.challenge.req) {
-      const have = new Set(Object.values(S.xi).map(p => p.c));
-      S.challengeOk = S.challenge.req.every(n => have.has(n));
+      // count-based: the same nation may be required more than once (Israel ×2)
+      const counts = {};
+      Object.values(S.xi).forEach(p => { counts[p.c] = (counts[p.c] || 0) + 1; });
+      const need = {};
+      S.challenge.req.forEach(n => { need[n] = (need[n] || 0) + 1; });
+      S.challengeOk = Object.entries(need).every(([n, k]) => (counts[n] || 0) >= k);
       evt.daily_ok = S.challengeOk;
     } else S.challengeOk = null;
     try {
@@ -896,6 +923,7 @@ function dailyDone() {
 }
 function chTitle(c) { return getLang() === 'he' ? c.t_he : c.t_en; }
 function chDesc(c)  { return getLang() === 'he' ? c.x_he : c.x_en; }
+function chGist(c)  { return (getLang() === 'he' ? c.g_he : c.g_en) || ''; }
 
 function updateDailyBtn() {
   const c = todayChallenge();
@@ -948,6 +976,7 @@ function showDaily() {
         track('daily_play', { day: c.d });
         resetGame();
         S.challenge = c;
+        S.challengePlan = buildChallengePlan(c);
         if (seenHowto()) showLegends(); else showHowto(true);
       });
       body.appendChild(play);
@@ -967,6 +996,7 @@ function wire() {
     track('game_start');
     resetGame();
     S.challenge = null;
+    S.challengePlan = null;
     if (seenHowto()) showLegends(); else showHowto(true);
   });
   $('daily-btn').addEventListener('click', showDaily);
@@ -994,12 +1024,23 @@ function wire() {
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
-    const daily = S.challenge ? { day: S.challenge.d, title: S.challenge.t_en, ok: S.challengeOk } : null;
+    const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk } : null;
     shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily).catch(console.error);
   });
 }
 
 applyStatic();
+// test hook: lets the E2E driver start any day's challenge regardless of date
+window.__gxiPlayDay = (d) => {
+  const c = (S.challenges || []).find(x => x.d === d);
+  if (!c) return false;
+  resetGame();
+  S.challenge = c;
+  S.challengePlan = buildChallengePlan(c);
+  showLegends();
+  return true;
+};
+
 loadData()
   .then(() => { wire(); updateLangButton(); updateDailyBtn(); show('s1'); })
   .catch(err => {
