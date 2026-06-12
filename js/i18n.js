@@ -130,6 +130,12 @@ const D = {
   daily_oneshot: { en: 'ONE SHOT — ALREADY PLAYED', he: 'ניסיון אחד, וכבר שיחקת' },
   try_n:      { en: (n) => 'ATTEMPT ' + n, he: (n) => 'ניסיון ' + n },
 
+  // group invite
+  grp_kick:   { en: 'THE DRESSING ROOM', he: 'חדר ההלבשה' },
+  grp_main:   { en: 'WON? CRASHED OUT? THE GROUP WANTS PROOF.', he: 'ניצחת? הודחת? בקבוצה רוצים לראות הוכחות.' },
+  grp_btn:    { en: 'JOIN THE WHATSAPP GROUP', he: 'לקבוצת הוואטסאפ של המשחק' },
+  grp_board:  { en: 'THE GROUP &#8594;', he: 'לקבוצה &#8594;' },
+
   // misc
   pick_of:    { en: (n) => 'PICK ' + n + ' OF 11', he: (n) => 'בחירה ' + n + ' מתוך 11' },
   pick_n:     { en: (n) => 'PICK ' + n + '/11', he: (n) => 'בחירה ' + n + '/11' },

@@ -663,3 +663,27 @@ html[data-lang="he"] .daily-t { font-family: system-ui, 'Segoe UI', sans-serif; 
 .daily-row.today .daily-dn, .daily-row.today .daily-t { color: var(--gold); }
 .daily-play { width: 100%; margin: 14px 0 0; font-size: 19px; padding: 13px 0 11px; }
 .daily-play:disabled { opacity: .45; pointer-events: none; }
+
+/* group invite — dressing-room ticket */
+#group-cta {
+  display: block; margin: 26px 18px 10px; padding: 16px 18px 15px;
+  border: 2px dashed var(--gold); background: rgba(245, 197, 24, 0.06);
+  text-decoration: none; transform: rotate(-0.6deg);
+}
+#group-cta .gc-kick { display: block; color: var(--gold); }
+#group-cta .gc-main {
+  display: block; font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 21px; line-height: 1.2; color: var(--bone); margin: 7px 0 12px;
+}
+#group-cta .gc-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--gold); color: var(--ink);
+  font-weight: 700; font-size: 15px; padding: 9px 16px 8px;
+  transform: rotate(0.8deg);
+}
+#s6.champion #group-cta { border-color: var(--bone); }
+#daily-group-link {
+  display: inline-block; margin-top: 10px; color: var(--gold);
+  font-weight: 700; font-size: 14px; text-decoration: none;
+  border-bottom: 2px solid var(--gold); padding-bottom: 2px;
+}

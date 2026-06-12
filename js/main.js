@@ -1171,6 +1171,8 @@ function wire() {
   $('team-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') lockTeamName(); });
   $('board-close').addEventListener('click', () => show(boardReturn));
   $('btn-next-match').addEventListener('click', nextMatch);
+  $('group-cta').addEventListener('click', () => track('group_join', { from: 'result' }));
+  $('daily-group-link').addEventListener('click', () => track('group_join', { from: 'board' }));
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
