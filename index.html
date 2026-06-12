@@ -17,7 +17,14 @@
   <link rel="stylesheet" href="./css/fonts.css">
   <link rel="stylesheet" href="./css/style.css">
   <!-- anonymous usage stats (Umami) — no cookies, no personal data; see footer note -->
-  <script defer src="https://cloud.umami.is/script.js" data-website-id="6cae454a-64d6-4b20-b205-41c0088eb00f"></script>
+  <script>
+    /* owner opt-out: open the site once with ?boss on any device and that
+       browser is excluded from analytics forever (umami honours this key) */
+    try {
+      if (location.search.indexOf('boss') !== -1) localStorage.setItem('umami.disabled', '1');
+    } catch (e) { /* ok */ }
+  </script>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="6cae454a-64d6-4b20-b205-41c0088eb00f" data-domains="moshfrenkel.github.io"></script>
 </head>
 <body>
 
