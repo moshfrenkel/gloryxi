@@ -70,7 +70,7 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
     x.font = '30px Anton, "Arial Narrow", sans-serif';
     x.fillText('DAILY #' + daily.day + ' · ' + daily.title + (daily.ok === true ? ' ✓' : daily.ok === false ? ' ✗' : ''), W / 2, sy + 35, W - 160);
     x.font = '600 26px "Space Grotesk", "Segoe UI", sans-serif';
-    x.fillText(daily.gist || '', W / 2, sy + 68, W - 160);
+    x.fillText((daily.gist || '') + (daily.tries ? '  ·  ATTEMPT ' + daily.tries : ''), W / 2, sy + 68, W - 160);
     x.textAlign = 'left';
   }
 
@@ -148,7 +148,8 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
       await navigator.share({
         files: [file],
         title: 'GloryXI',
-        text: (daily ? 'GloryXI Daily #' + daily.day + ' · ' + daily.title + (daily.ok === true ? ' ✓' : daily.ok === false ? ' ✗' : '') + '\n' : '') +
+        text: (daily ? 'GloryXI Daily #' + daily.day + ' · ' + daily.title + (daily.ok === true ? ' ✓' : daily.ok === false ? ' ✗' : '')
+          + (daily.tries ? (daily.ok === true ? ' in ' + daily.tries + (daily.tries === 1 ? ' try' : ' tries') : ' · attempt ' + daily.tries) : '') + '\n' : '') +
           teamName + ' — ' + verdict + '. Build your own all-time XI: https://moshfrenkel.github.io/gloryxi/',
       });
       return;

@@ -127,6 +127,8 @@ const D = {
   daily_missed:{ en: 'MISSED', he: 'הוחמץ' },
   daily_locked:{ en: 'LOCKED', he: 'נעול' },
   daily_back: { en: 'BACK', he: 'חזרה' },
+  daily_oneshot: { en: 'ONE SHOT — ALREADY PLAYED', he: 'ניסיון אחד, וכבר שיחקת' },
+  try_n:      { en: (n) => 'ATTEMPT ' + n, he: (n) => 'ניסיון ' + n },
 
   // misc
   pick_of:    { en: (n) => 'PICK ' + n + ' OF 11', he: (n) => 'בחירה ' + n + ' מתוך 11' },

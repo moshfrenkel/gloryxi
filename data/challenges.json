@@ -49,7 +49,14 @@
   "x_en": "One of your defenders must score in the tournament.",
   "x_he": "אחד המגינים שלך חייב לכבוש בטורניר.",
   "g_en": "A DEFENDER MUST SCORE",
-  "g_he": "מגן חייב לכבוש"
+  "g_he": "מגן חייב לכבוש",
+  "win": [
+   {
+    "k": "scorerPos",
+    "pos": "DF",
+    "n": 1
+   }
+  ]
  },
  {
   "d": 5,
@@ -59,7 +66,21 @@
   "x_en": "South American players only.",
   "x_he": "רק שחקנים דרום-אמריקאים.",
   "g_en": "SOUTH AMERICANS ONLY",
-  "g_he": "דרום אמריקאים בלבד"
+  "g_he": "דרום אמריקאים בלבד",
+  "flt": {
+   "nations": [
+    "Argentina",
+    "Brazil",
+    "Uruguay",
+    "Chile",
+    "Paraguay",
+    "Peru",
+    "Colombia",
+    "Ecuador",
+    "Bolivia"
+   ],
+   "rpt": true
+  }
  },
  {
   "d": 6,
@@ -69,7 +90,12 @@
   "x_en": "Goalkeeper rated 65 or less. Survive.",
   "x_he": "שוער בדירוג 65 ומטה. שרוד.",
   "g_en": "KEEPER RATED 65 OR LESS",
-  "g_he": "שוער עד דירוג 65"
+  "g_he": "שוער עד דירוג 65",
+  "flt": {
+   "cap": {
+    "GK": 65
+   }
+  }
  },
  {
   "d": 7,
@@ -79,7 +105,15 @@
   "x_en": "One player from every decade, 1930s to today.",
   "x_he": "שחקן מכל עשור, משנות ה-30 ועד היום.",
   "g_en": "ONE PLAYER PER DECADE",
-  "g_he": "שחקן מכל עשור"
+  "g_he": "שחקן מכל עשור",
+  "flt": {
+   "decades": true
+  },
+  "win": [
+   {
+    "k": "decades"
+   }
+  ]
  },
  {
   "d": 8,
@@ -89,7 +123,48 @@
   "x_en": "European players only.",
   "x_he": "רק שחקנים אירופאים.",
   "g_en": "EUROPEANS ONLY",
-  "g_he": "אירופאים בלבד"
+  "g_he": "אירופאים בלבד",
+  "flt": {
+   "nations": [
+    "Netherlands",
+    "Hungary",
+    "France",
+    "West Germany",
+    "Italy",
+    "Portugal",
+    "England",
+    "Germany",
+    "Spain",
+    "Soviet Union",
+    "Croatia",
+    "Norway",
+    "Czechoslovakia",
+    "Belgium",
+    "Poland",
+    "Bulgaria",
+    "Austria",
+    "Yugoslavia",
+    "Russia",
+    "Sweden",
+    "Switzerland",
+    "Turkey",
+    "Romania",
+    "Denmark",
+    "Ukraine",
+    "Slovakia",
+    "Republic of Ireland",
+    "Wales",
+    "Greece",
+    "Scotland",
+    "Northern Ireland",
+    "Czech Republic",
+    "Serbia",
+    "East Germany",
+    "Slovenia",
+    "Bosnia and Herzegovina",
+    "Iceland"
+   ]
+  }
  },
  {
   "d": 9,
@@ -119,7 +194,32 @@
   "x_en": "Field a player from a nation playing in the real World Cup today.",
   "x_he": "שבץ שחקן ממדינה שמשחקת היום במונדיאל האמיתי.",
   "g_en": "A NATION PLAYING TODAY",
-  "g_he": "מדינה שמשחקת היום במציאות"
+  "g_he": "מדינה שמשחקת היום במציאות",
+  "reqAny": [
+   "Spain",
+   "Saudi Arabia",
+   "Belgium",
+   "Iran",
+   "Uruguay",
+   "Cape Verde",
+   "New Zealand",
+   "Egypt"
+  ],
+  "win": [
+   {
+    "k": "anyNation",
+    "nations": [
+     "Spain",
+     "Saudi Arabia",
+     "Belgium",
+     "Iran",
+     "Uruguay",
+     "Cape Verde",
+     "New Zealand",
+     "Egypt"
+    ]
+   }
+  ]
  },
  {
   "d": 12,
@@ -129,7 +229,13 @@
   "x_en": "Your top scorer must be a midfielder.",
   "x_he": "מלך השערים שלך חייב להיות קשר.",
   "g_en": "TOP SCORER MUST BE A MIDFIELDER",
-  "g_he": "מלך השערים חייב להיות קשר"
+  "g_he": "מלך השערים חייב להיות קשר",
+  "win": [
+   {
+    "k": "topScorer",
+    "pos": "MF"
+   }
+  ]
  },
  {
   "d": 13,
@@ -139,7 +245,10 @@
   "x_en": "Pick the lowest-rated legend in the hall. Take him far.",
   "x_he": "בחר את האגדה עם הדירוג הנמוך בהיכל, וקח אותה רחוק.",
   "g_en": "LOWEST-RATED LEGEND",
-  "g_he": "האגדה הכי צנועה בהיכל"
+  "g_he": "האגדה הכי צנועה בהיכל",
+  "flt": {
+   "legendMin": true
+  }
  },
  {
   "d": 14,
@@ -149,7 +258,21 @@
   "x_en": "Only the 8 nations that ever won the cup.",
   "x_he": "רק 8 המדינות שזכו אי פעם בגביע.",
   "g_en": "WORLD CHAMPIONS ONLY",
-  "g_he": "אלופות עולם בלבד"
+  "g_he": "אלופות עולם בלבד",
+  "flt": {
+   "nations": [
+    "Brazil",
+    "Germany",
+    "West Germany",
+    "Italy",
+    "Argentina",
+    "France",
+    "Uruguay",
+    "England",
+    "Spain"
+   ],
+   "rpt": true
+  }
  },
  {
   "d": 15,
@@ -159,7 +282,17 @@
   "x_en": "Only finalists that never won: Netherlands, Hungary, Czechoslovakia, Sweden, Croatia.",
   "x_he": "רק סגניות שמעולם לא זכו: הולנד, הונגריה, צ'כוסלובקיה, שוודיה, קרואטיה.",
   "g_en": "FINALISTS THAT NEVER WON",
-  "g_he": "סגניות שמעולם לא זכו"
+  "g_he": "סגניות שמעולם לא זכו",
+  "flt": {
+   "nations": [
+    "Netherlands",
+    "Hungary",
+    "Czechoslovakia",
+    "Sweden",
+    "Croatia"
+   ],
+   "rpt": true
+  }
  },
  {
   "d": 16,
@@ -169,7 +302,14 @@
   "x_en": "Two goals by defenders in one tournament.",
   "x_he": "שני שערים של שחקני הגנה בטורניר אחד.",
   "g_en": "TWO DEFENDER GOALS",
-  "g_he": "שני שערים של מגינים"
+  "g_he": "שני שערים של מגינים",
+  "win": [
+   {
+    "k": "scorerPos",
+    "pos": "DF",
+    "n": 2
+   }
+  ]
  },
  {
   "d": 17,
@@ -179,7 +319,12 @@
   "x_en": "Real group stage ends today: top your group.",
   "x_he": "היום נסגרים הבתים האמיתיים: סיים ראשון בבית.",
   "g_en": "FINISH TOP OF YOUR GROUP",
-  "g_he": "סיים ראשון בבית"
+  "g_he": "סיים ראשון בבית",
+  "win": [
+   {
+    "k": "rank1"
+   }
+  ]
  },
  {
   "d": 18,
@@ -189,7 +334,15 @@
   "x_en": "Win a knockout match exactly 1-0.",
   "x_he": "נצח משחק נוקאאוט בדיוק 1-0.",
   "g_en": "WIN A KNOCKOUT EXACTLY 1-0",
-  "g_he": "נצח נוקאאוט בדיוק 1-0"
+  "g_he": "נצח נוקאאוט בדיוק 1-0",
+  "win": [
+   {
+    "k": "result",
+    "gf": 1,
+    "ga": 0,
+    "ko": true
+   }
+  ]
  },
  {
   "d": 19,
@@ -199,7 +352,14 @@
   "x_en": "Both strikers rated 80+, both finish with 3+ goals.",
   "x_he": "שני חלוצים מעל 80, ושניהם מסיימים עם 3+ שערים.",
   "g_en": "STRIKERS 80+, 3 GOALS EACH",
-  "g_he": "חלוצי +80, שלושה שערים כל אחד"
+  "g_he": "חלוצי +80, שלושה שערים כל אחד",
+  "win": [
+   {
+    "k": "strikers",
+    "minR": 80,
+    "goals": 3
+   }
+  ]
  },
  {
   "d": 20,
@@ -209,7 +369,26 @@
   "x_en": "African players only.",
   "x_he": "רק שחקנים אפריקאים.",
   "g_en": "AFRICANS ONLY",
-  "g_he": "אפריקאים בלבד"
+  "g_he": "אפריקאים בלבד",
+  "flt": {
+   "nations": [
+    "Egypt",
+    "Morocco",
+    "Cameroon",
+    "Senegal",
+    "Ghana",
+    "Nigeria",
+    "Algeria",
+    "South Africa",
+    "Tunisia",
+    "Ivory Coast",
+    "Zaire",
+    "Togo",
+    "Angola",
+    "DR Congo",
+    "Cape Verde"
+   ]
+  }
  },
  {
   "d": 21,
@@ -219,7 +398,12 @@
   "x_en": "All 11 from the 2026 squads.",
   "x_he": "כל ה-11 מסגלי 2026 בלבד.",
   "g_en": "2026 SQUADS ONLY",
-  "g_he": "רק סגלי 2026"
+  "g_he": "רק סגלי 2026",
+  "flt": {
+   "years": [
+    2026
+   ]
+  }
  },
  {
   "d": 22,
@@ -239,7 +423,12 @@
   "x_en": "One of your players scores three in a single match.",
   "x_he": "שחקן שלך כובש שלושה שערים במשחק אחד.",
   "g_en": "SCORE A HAT-TRICK",
-  "g_he": "שלושער במשחק אחד"
+  "g_he": "שלושער במשחק אחד",
+  "win": [
+   {
+    "k": "hatTrick"
+   }
+  ]
  },
  {
   "d": 24,
@@ -249,7 +438,14 @@
   "x_en": "Pass the round of 16 in as few attempts as possible.",
   "x_he": "עבור את שמינית הגמר בכמה שפחות ניסיונות.",
   "g_en": "PASS R16 IN FEWEST TRIES",
-  "g_he": "עבור שמינית במינימום ניסיונות"
+  "g_he": "עבור שמינית במינימום ניסיונות",
+  "tries": true,
+  "win": [
+   {
+    "k": "stage",
+    "min": "QF"
+   }
+  ]
  },
  {
   "d": 25,
@@ -259,7 +455,13 @@
   "x_en": "Your top scorer is rated under 75.",
   "x_he": "מלך השערים שלך מתחת לדירוג 75.",
   "g_en": "TOP SCORER RATED UNDER 75",
-  "g_he": "מלך שערים מתחת ל-75"
+  "g_he": "מלך שערים מתחת ל-75",
+  "win": [
+   {
+    "k": "topScorer",
+    "maxR": 74
+   }
+  ]
  },
  {
   "d": 26,
@@ -269,7 +471,16 @@
   "x_en": "Your legend is a goalkeeper. Pass the round of 16.",
   "x_he": "האגדה שלך היא שוער, ועבור את השמינית.",
   "g_en": "GK LEGEND + PASS R16",
-  "g_he": "אגדה שוער + עבור שמינית"
+  "g_he": "אגדה שוער + עבור שמינית",
+  "flt": {
+   "legendPos": "GK"
+  },
+  "win": [
+   {
+    "k": "stage",
+    "min": "QF"
+   }
+  ]
  },
  {
   "d": 27,
@@ -279,7 +490,20 @@
   "x_en": "Only nations that no longer exist.",
   "x_he": "רק מדינות שכבר לא קיימות על המפה.",
   "g_en": "EXTINCT NATIONS ONLY",
-  "g_he": "רק מדינות שלא קיימות"
+  "g_he": "רק מדינות שלא קיימות",
+  "flt": {
+   "nations": [
+    "West Germany",
+    "Soviet Union",
+    "Czechoslovakia",
+    "Yugoslavia",
+    "East Germany",
+    "Dutch East Indies",
+    "Zaire",
+    "Serbia and Montenegro"
+   ],
+   "rpt": true
+  }
  },
  {
   "d": 28,
@@ -299,7 +523,8 @@
   "x_en": "A player from each real quarter-finalist + 3 free picks.",
   "x_he": "שחקן מכל אחת מ-8 נבחרות הרבע האמיתי + 3 חופשיים.",
   "g_en": "REAL QUARTER-FINALISTS",
-  "g_he": "שחקן מכל נבחרת ברבע האמיתי"
+  "g_he": "שחקן מכל נבחרת ברבע האמיתי",
+  "todo": "fill req with the 8 real quarter-finalists on July 8"
  },
  {
   "d": 30,
@@ -309,7 +534,12 @@
   "x_en": "Attackers in all 11 positions. Good luck, keeper.",
   "x_he": "שחקני התקפה בכל 11 העמדות. בהצלחה לשוער.",
   "g_en": "ATTACKERS IN EVERY POSITION",
-  "g_he": "התקפה בכל העמדות"
+  "g_he": "התקפה בכל העמדות",
+  "flt": {
+   "pos": [
+    "FW"
+   ]
+  }
  },
  {
   "d": 31,
@@ -319,7 +549,20 @@
   "x_en": "Defenders and midfielders only, even up front. Win 1-0.",
   "x_he": "מגינים וקשרים בלבד, גם בהתקפה. נצח 1-0.",
   "g_en": "NO ATTACKERS, WIN 1-0",
-  "g_he": "בלי חלוצים, נצח 1-0"
+  "g_he": "בלי חלוצים, נצח 1-0",
+  "flt": {
+   "pos": [
+    "DF",
+    "MF"
+   ]
+  },
+  "win": [
+   {
+    "k": "result",
+    "gf": 1,
+    "ga": 0
+   }
+  ]
  },
  {
   "d": 32,
@@ -329,7 +572,10 @@
   "x_en": "Every wide player in his natural position.",
   "x_he": "כל שחקני האגף בעמדה הטבעית שלהם.",
   "g_en": "WINGERS IN REAL POSITIONS",
-  "g_he": "אגפים בעמדה האמיתית"
+  "g_he": "אגפים בעמדה האמיתית",
+  "flt": {
+   "wideNatural": true
+  }
  },
  {
   "d": 33,
@@ -339,7 +585,14 @@
   "x_en": "Only 1990, 1994 and 1998 players.",
   "x_he": "רק שחקנים מ-1990, 1994 ו-1998.",
   "g_en": "1990s PLAYERS ONLY",
-  "g_he": "רק שחקני שנות ה-90"
+  "g_he": "רק שחקני שנות ה-90",
+  "flt": {
+   "years": [
+    1990,
+    1994,
+    1998
+   ]
+  }
  },
  {
   "d": 34,
@@ -349,7 +602,13 @@
   "x_en": "Concede 2 goals or fewer in the whole tournament.",
   "x_he": "עד 2 ספיגות בכל הטורניר כולו.",
   "g_en": "CONCEDE 2 OR FEWER",
-  "g_he": "עד 2 ספיגות בטורניר"
+  "g_he": "עד 2 ספיגות בטורניר",
+  "win": [
+   {
+    "k": "maxGA",
+    "n": 2
+   }
+  ]
  },
  {
   "d": 35,
@@ -359,7 +618,12 @@
   "x_en": "Win all 7 matches in regular time.",
   "x_he": "7 ניצחונות, הכל בזמן חוקי.",
   "g_en": "WIN ALL 7 IN 90 MINUTES",
-  "g_he": "7 ניצחונות בזמן חוקי"
+  "g_he": "7 ניצחונות בזמן חוקי",
+  "win": [
+   {
+    "k": "perfect"
+   }
+  ]
  },
  {
   "d": 36,
@@ -369,7 +633,10 @@
   "x_en": "Weakest legend + the strongest XI you can build around him.",
   "x_he": "האגדה הצנועה ביותר + ההרכב הכי חזק שתבנה סביבה.",
   "g_en": "WEAK LEGEND, STRONG XI",
-  "g_he": "אגדה חלשה, הרכב חזק"
+  "g_he": "אגדה חלשה, הרכב חזק",
+  "flt": {
+   "legendMin": true
+  }
  },
  {
   "d": 37,
@@ -379,7 +646,31 @@
   "x_en": "Only nations that ever hosted a World Cup.",
   "x_he": "רק מדינות שאירחו מונדיאל אי פעם.",
   "g_en": "HOST NATIONS ONLY",
-  "g_he": "מארחות מונדיאל בלבד"
+  "g_he": "מארחות מונדיאל בלבד",
+  "flt": {
+   "nations": [
+    "Uruguay",
+    "Italy",
+    "France",
+    "Brazil",
+    "Switzerland",
+    "Sweden",
+    "Chile",
+    "England",
+    "Mexico",
+    "West Germany",
+    "Germany",
+    "Argentina",
+    "Spain",
+    "United States",
+    "South Korea",
+    "Japan",
+    "South Africa",
+    "Russia",
+    "Qatar",
+    "Canada"
+   ]
+  }
  },
  {
   "d": 38,
@@ -389,7 +680,23 @@
   "x_en": "Only podium nations that never won it.",
   "x_he": "רק מדינות פודיום שמעולם לא זכו.",
   "g_en": "PODIUM, NEVER CHAMPIONS",
-  "g_he": "פודיום בלי זכייה"
+  "g_he": "פודיום בלי זכייה",
+  "flt": {
+   "nations": [
+    "Netherlands",
+    "Hungary",
+    "Czechoslovakia",
+    "Sweden",
+    "Croatia",
+    "United States",
+    "Austria",
+    "Chile",
+    "Portugal",
+    "Poland",
+    "Belgium",
+    "Turkey"
+   ]
+  }
  },
  {
   "d": 39,
@@ -399,6 +706,12 @@
   "x_en": "One attempt only today. Champion = eternal glory.",
   "x_he": "ניסיון אחד בלבד היום. אלוף = תהילת נצח בקבוצה.",
   "g_en": "ONE ATTEMPT, CHAMPION OR BUST",
-  "g_he": "ניסיון אחד, אלוף או כלום"
+  "g_he": "ניסיון אחד, אלוף או כלום",
+  "oneShot": true,
+  "win": [
+   {
+    "k": "champion"
+   }
+  ]
  }
 ]

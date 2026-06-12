@@ -120,16 +120,68 @@ function slotsForPos(pos) {
   return (POS_SLOTS[pos] || []).filter(s => !S.xi[s]);
 }
 
+// ── stage-2 challenge filters ─────────────────────────────────────────────────
+// flt fields (challenges.json): nations [...] / years [...] / rpt (lift the
+// one-country-once rule on short nation lists) / pos ["FW"] (only these natural
+// positions, placeable in ANY slot) / cap {GK:65} (rating ceiling per slot
+// group) / decades (draw serves missing decades until all 9 are covered) /
+// wideNatural (RB/LB/RM/LM only accept players whose real positions include
+// that exact slot) / legendPos, legendMin (hall-of-legends restrictions).
+function challengeFlt() { return (S.challenge && S.challenge.flt) || null; }
+
+const WIDE_SLOTS = ['RB', 'LB', 'RM', 'LM'];
+const CAP_GROUP = (slot) => slot === 'GK' ? 'GK'
+  : slot === 'RB' || slot === 'LB' || slot.startsWith('CB') ? 'DF'
+  : slot.startsWith('ST') ? 'FW' : 'MF';
+const decadeOf = (y) => y < 1940 ? 193 : Math.floor(y / 10);
+const ALL_DECADES = 9; // 30s 50s 60s 70s 80s 90s 00s 10s 20s — no 1940s cups
+
+// where may THIS player go right now — single source of truth for the draw
+// validator, the squad sheet and the hall of legends
+function eligibleSlots(p) {
+  const f = challengeFlt();
+  let slots;
+  if (f && f.pos) {
+    if (!f.pos.includes(p.p)) return [];
+    slots = freeSlots(); // position-theme days: eligible players go anywhere
+  } else slots = slotsForPos(p.p);
+  if (f && f.cap) slots = slots.filter(s => { const cap = f.cap[CAP_GROUP(s)]; return cap == null || p.r <= cap; });
+  if (f && f.wideNatural) slots = slots.filter(s => !WIDE_SLOTS.includes(s) || (p.sp && p.sp.split('/').includes(s)));
+  return slots;
+}
+
+// the drawn squad minus players already fielded; in challenge mode the same
+// HUMAN is also blocked across years (rpt days: no Cruyff '74 next to Cruyff '78)
+function availableSquad(c, y) {
+  const squad = S.squads.get(c + '|' + y) || [];
+  const placed = new Set(Object.values(S.xi));
+  if (!S.challenge) return squad.filter(p => !placed.has(p));
+  const names = new Set(Object.values(S.xi).map(p => p.c + '|' + p.n));
+  return squad.filter(p => !placed.has(p) && !names.has(p.c + '|' + p.n));
+}
+
 function comboValid([c, y]) {
-  if (S.used.has(c)) return false;
-  const squad = S.squads.get(c + '|' + y);
-  if (!squad) return false;
-  return squad.some(p => slotsForPos(p.p).length > 0);
+  const f = challengeFlt();
+  if (f) {
+    if (f.nations && !f.nations.includes(c)) return false;
+    if (f.years && !f.years.includes(y)) return false;
+    if (!f.rpt && S.used.has(c)) return false;
+  } else if (S.used.has(c)) return false;
+  if (!S.squads.has(c + '|' + y)) return false;
+  return availableSquad(c, y).some(p => eligibleSlots(p).length > 0);
 }
 
 function pickCombo(constraint) {
   // constraint: {keepYear} / {keepCountry} / null. Falls back to any valid combo.
   let pool = S.combos.filter(comboValid);
+  const f = challengeFlt();
+  if (f && f.decades) {
+    const have = new Set(Object.values(S.xi).map(p => decadeOf(p.y)));
+    if (have.size < ALL_DECADES) {
+      const sub = pool.filter(([, y]) => !have.has(decadeOf(y)));
+      if (sub.length) pool = sub;
+    }
+  }
   if (constraint && constraint.notCountry) {
     const sub = pool.filter(([c]) => c !== constraint.notCountry);
     if (sub.length) pool = sub;
@@ -152,18 +204,19 @@ function pickCombo(constraint) {
 // may appear twice (e.g. Israel ×2): the one-country-once rule is bypassed for
 // forced draws, and already-placed players are filtered out of the squad sheet.
 function buildChallengePlan(c) {
-  if (!c || !c.req || !c.req.length) return null;
-  return c.req.map((n, i) => {
+  const ent = [];
+  if (c && c.req) c.req.forEach((n, i) => {
     const at = c.reqAt ? c.reqAt[i] : 'asap';
-    return { n, at: at === 'mid' ? 5 + Math.floor(Math.random() * 4) : at, done: false };
+    ent.push({ n, at: at === 'mid' ? 5 + Math.floor(Math.random() * 4) : at, done: false });
   });
+  // reqAny: one forced draw from a SET of nations (player's pick decides which)
+  if (c && c.reqAny) ent.push({ anyOf: c.reqAny, at: 5 + Math.floor(Math.random() * 4), done: false });
+  return ent.length ? ent : null;
 }
 
 function _challengeComboValid([c, y]) {
-  const squad = S.squads.get(c + '|' + y);
-  if (!squad) return false;
-  const placed = new Set(Object.values(S.xi));
-  return squad.some(p => !placed.has(p) && slotsForPos(p.p).length > 0);
+  if (!S.squads.has(c + '|' + y)) return false;
+  return availableSquad(c, y).some(p => eligibleSlots(p).length > 0);
 }
 
 function pickChallengeCombo() {
@@ -172,7 +225,7 @@ function pickChallengeCombo() {
   const pickNum = Object.keys(S.xi).length + 1;
   const due = plan.find(e => !e.done && (e.at === 'asap' || e.at <= pickNum));
   if (!due) return null;
-  const pool = S.combos.filter(c => c[0] === due.n && _challengeComboValid(c));
+  const pool = S.combos.filter(c => (due.n ? c[0] === due.n : due.anyOf.includes(c[0])) && _challengeComboValid(c));
   if (!pool.length) return null;
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -272,10 +325,7 @@ function showSquad() {
 
   const list = $('player-list');
   list.innerHTML = '';
-  const placed = new Set(Object.values(S.xi));
-  const squad = (S.squads.get(c + '|' + y) || [])
-    .filter(p => !placed.has(p))
-    .sort((a, b) => b.r - a.r);
+  const squad = availableSquad(c, y).slice().sort((a, b) => b.r - a.r);
 
   for (const pos of POS_ORDER) {
     const group = squad.filter(p => p.p === pos);
@@ -303,7 +353,7 @@ function showSquad() {
 function playerRow(p) {
   const row = document.createElement('div');
   row.className = 'player-row';
-  const open = slotsForPos(p.p);
+  const open = eligibleSlots(p);
   if (!open.length) row.classList.add('dim');
 
   const idBox = document.createElement('div');
@@ -343,7 +393,7 @@ function toggleSlotStrip(row, p) {
   cap.className = 't-cap';
   cap.textContent = t('place_at');
   strip.appendChild(cap);
-  for (const slot of slotsForPos(p.p)) {
+  for (const slot of eligibleSlots(p)) {
     const b = document.createElement('button');
     b.className = 'slot-option';
     // dim slots outside the player's real positions (sp like "RB/CB") — placing
@@ -364,7 +414,7 @@ function place(p, slot) {
   S.xi[slot] = p;
   S.used.add(p.c);
   if (S.challengePlan) {
-    const e = S.challengePlan.find(x => !x.done && x.n === p.c);
+    const e = S.challengePlan.find(x => !x.done && (x.n ? x.n === p.c : x.anyOf.includes(p.c)));
     if (e) e.done = true;
   }
   renderBoard();
@@ -480,9 +530,23 @@ function showLegends() {
   show('s0');
   const list = $('legend-list');
   list.innerHTML = '';
-  const legends = S.players
-    .filter(p => p.r >= LEGEND_MIN_RATING)
-    .sort((a, b) => b.r - a.r);
+  const f = challengeFlt();
+  let cand = S.players;
+  if (f) {
+    if (f.nations) cand = cand.filter(p => f.nations.includes(p.c));
+    if (f.years) cand = cand.filter(p => f.years.includes(p.y));
+    if (f.legendPos) cand = cand.filter(p => p.p === f.legendPos);
+    cand = cand.filter(p => eligibleSlots(p).length > 0); // pos/cap days drop unplaceable legends
+  }
+  let legends = cand.filter(p => p.r >= LEGEND_MIN_RATING);
+  if (f && f.legendMin && legends.length) {
+    const min = legends.reduce((m, p) => Math.min(m, p.r), 99);
+    legends = legends.filter(p => p.r === min);
+  } else if (f && legends.length < 6) {
+    // a filtered day may starve the 92+ hall — fall back to the day's best
+    legends = cand.slice().sort((a, b) => b.r - a.r).slice(0, 12);
+  }
+  legends = legends.slice().sort((a, b) => b.r - a.r);
 
   for (const pos of POS_ORDER) {
     const group = legends.filter(p => p.p === pos);
@@ -815,31 +879,95 @@ function flashWin() {
 
 function finishTournament() { showResult(); }
 
+// ── stage-2 win conditions — checked from the journey + the XI ────────────────
+const STAGE_RANK = { GROUP_EXIT: 0, R32: 1, R16: 2, QF: 3, SF: 4, F: 5, CHAMPION: 6 };
+
+function _goalsBySlot(J) {
+  const g = {};
+  for (const m of J.journey) for (const s of (m.scorers || [])) if (s.slot) g[s.slot] = (g[s.slot] || 0) + 1;
+  return g;
+}
+
+function evalCond(w, J) {
+  const journey = J.journey;
+  switch (w.k) {
+    case 'scorerPos':   // n goals by players of this natural position (day 4, 16)
+      return journey.reduce((n, m) => n + (m.scorers || []).filter(s => s.p === w.pos).length, 0) >= (w.n || 1);
+    case 'topScorer': { // your top scorer's position / rating ceiling (day 12, 25)
+      const g = _goalsBySlot(J);
+      const max = Math.max(0, ...Object.values(g));
+      if (!max) return false;
+      const tops = Object.keys(g).filter(s => g[s] === max).map(s => S.xi[s]).filter(Boolean);
+      return tops.some(p => (!w.pos || p.p === w.pos) && (w.maxR == null || p.r <= w.maxR));
+    }
+    case 'rank1': return J.rank === 1;                                  // day 17
+    case 'result':      // an exact score, optionally knockout-only (day 18, 31)
+      return journey.some(m => m.scoreFor === w.gf && m.scoreAgainst === w.ga && (!w.ko || m.stage !== 'GROUP'));
+    case 'hatTrick':    // 3+ goals by one player in one match (day 23)
+      return journey.some(m => {
+        const per = {};
+        for (const s of (m.scorers || [])) if (s.slot && (per[s.slot] = (per[s.slot] || 0) + 1) >= 3) return true;
+        return false;
+      });
+    case 'stage': return STAGE_RANK[J.finalStage] >= STAGE_RANK[w.min]; // day 24, 26
+    case 'maxGA': return J.record.ga <= w.n && J.finalStage !== 'GROUP_EXIT'; // day 34
+    case 'perfect':     // champion, all wins, none past 90 minutes (day 35)
+      return J.finalStage === 'CHAMPION' && journey.every(m => !m.note && m.scoreFor > m.scoreAgainst);
+    case 'champion': return J.finalStage === 'CHAMPION';                // day 39
+    case 'strikers': {  // both STs at min rating, each with the goal quota (day 19)
+      const g = _goalsBySlot(J);
+      return ['ST1', 'ST2'].every(s => S.xi[s] && S.xi[s].r >= w.minR && (g[s] || 0) >= w.goals);
+    }
+    case 'decades':     // XI covers all 9 World Cup decades (day 7)
+      return new Set(Object.values(S.xi).map(p => decadeOf(p.y))).size >= ALL_DECADES;
+    case 'anyNation':   // at least one player from this set (day 11)
+      return Object.values(S.xi).some(p => w.nations.includes(p.c));
+    default: return true;
+  }
+}
+
+function evalChallenge(c, J) {
+  let ok = null;
+  if (c.req) {
+    // count-based: the same nation may be required more than once (Israel ×2)
+    const counts = {};
+    Object.values(S.xi).forEach(p => { counts[p.c] = (counts[p.c] || 0) + 1; });
+    const need = {};
+    c.req.forEach(n => { need[n] = (need[n] || 0) + 1; });
+    ok = Object.entries(need).every(([n, k]) => (counts[n] || 0) >= k);
+  }
+  if (c.win) {
+    const all = c.win.every(w => evalCond(w, J));
+    ok = ok === null ? all : ok && all;
+  }
+  // pure-filter days: surviving the restriction IS the challenge
+  if (ok === null && c.flt) ok = true;
+  return ok;
+}
+
 // ── S6 back cover ─────────────────────────────────────────────────────────────
 function showResult() {
   const J = S.journey;
   const evt = { stage: J.finalStage, games_played: gamesBucket(bumpGamesPlayed()) };
   if (S.challenge) {
     evt.daily = S.challenge.d;
-    if (S.challenge.req) {
-      // count-based: the same nation may be required more than once (Israel ×2)
-      const counts = {};
-      Object.values(S.xi).forEach(p => { counts[p.c] = (counts[p.c] || 0) + 1; });
-      const need = {};
-      S.challenge.req.forEach(n => { need[n] = (need[n] || 0) + 1; });
-      S.challengeOk = Object.entries(need).every(([n, k]) => (counts[n] || 0) >= k);
-      evt.daily_ok = S.challengeOk;
-    } else S.challengeOk = null;
+    S.challengeOk = evalChallenge(S.challenge, J);
+    if (S.challengeOk !== null) evt.daily_ok = S.challengeOk;
+    if (S.challenge.tries && S.tryNo) evt.tries = S.tryNo;
     try {
       const done = dailyDone();
-      done[S.challenge.d] = { s: J.finalStage, ok: S.challengeOk };
+      const prev = done[S.challenge.d];
+      // a later failed replay must not erase an earlier success
+      if (!prev || !prev.ok || S.challengeOk) done[S.challenge.d] = { s: J.finalStage, ok: S.challengeOk, n: S.tryNo || undefined };
       localStorage.setItem('gxi_daily_done', JSON.stringify(done));
     } catch (_) { /* ok */ }
   }
   track('game_complete', evt);
   document.querySelector('#s6 .verdict-kicker').textContent =
     S.challenge
-      ? ('DAILY #' + S.challenge.d + ' · ' + chTitle(S.challenge) + (S.challengeOk === true ? ' ✓' : S.challengeOk === false ? ' ✗' : ''))
+      ? ('DAILY #' + S.challenge.d + ' · ' + chTitle(S.challenge)
+        + (S.challengeOk === true ? ' ✓' : S.challengeOk === false ? ' ✗' : '')
+        + (S.challenge.tries && S.tryNo ? ' · ' + t('try_n', S.tryNo) : ''))
       : t('s6_kicker');
   show('s6');
   const s6 = $('s6');
@@ -866,6 +994,7 @@ function resetGame() {
   S.skips = { team: 1, year: 1 };
   S.draw = null;
   S.journey = null;
+  S.tryNo = 0;
   S.spinning = false;
   S.feedIdx = 0; S.matchNo = 0; S.printing = false;
   $('s6').classList.remove('champion');
@@ -921,6 +1050,20 @@ function todayChallenge() {
 function dailyDone() {
   try { return JSON.parse(localStorage.getItem('gxi_daily_done') || '{}'); } catch (_) { return {}; }
 }
+// local attempt counter (day 24): counts runs until the day is beaten, then freezes
+function bumpTries(c) {
+  if (!c.tries) { S.tryNo = 0; return; }
+  let n = 1;
+  try {
+    const all = JSON.parse(localStorage.getItem('gxi_daily_tries') || '{}');
+    const prev = dailyDone()[c.d];
+    n = (all[c.d] || 0) + ((prev && prev.ok) ? 0 : 1);
+    all[c.d] = n;
+    localStorage.setItem('gxi_daily_tries', JSON.stringify(all));
+  } catch (_) { /* private mode — count this run as the first */ }
+  S.tryNo = n;
+}
+
 function chTitle(c) { return getLang() === 'he' ? c.t_he : c.t_en; }
 function chDesc(c)  { return getLang() === 'he' ? c.x_he : c.x_en; }
 function chGist(c)  { return (getLang() === 'he' ? c.g_he : c.g_en) || ''; }
@@ -971,14 +1114,21 @@ function showDaily() {
       const play = document.createElement('button');
       play.id = 'daily-play';
       play.className = 'slab slab-hot daily-play';
-      play.textContent = t('daily_play');
-      play.addEventListener('click', () => {
-        track('daily_play', { day: c.d });
-        resetGame();
-        S.challenge = c;
-        S.challengePlan = buildChallengePlan(c);
-        if (seenHowto()) showLegends(); else showHowto(true);
-      });
+      if (c.oneShot && done[c.d]) {
+        // the final: one attempt, ever — the button stays as a tombstone
+        play.textContent = t('daily_oneshot');
+        play.disabled = true;
+      } else {
+        play.textContent = t('daily_play');
+        play.addEventListener('click', () => {
+          track('daily_play', { day: c.d });
+          resetGame();
+          S.challenge = c;
+          S.challengePlan = buildChallengePlan(c);
+          bumpTries(c);
+          if (seenHowto()) showLegends(); else showHowto(true);
+        });
+      }
       body.appendChild(play);
       todayRow = row;
     }
@@ -1024,7 +1174,7 @@ function wire() {
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
-    const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk } : null;
+    const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0 } : null;
     shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily).catch(console.error);
   });
 }
@@ -1037,8 +1187,17 @@ window.__gxiPlayDay = (d) => {
   resetGame();
   S.challenge = c;
   S.challengePlan = buildChallengePlan(c);
+  bumpTries(c);
   showLegends();
   return true;
+};
+// test hook: evaluate a challenge against a synthetic journey + XI
+window.__gxiEvalWin = (c, J, xi) => {
+  const keep = S.xi;
+  if (xi) S.xi = xi;
+  const r = evalChallenge(c, J);
+  S.xi = keep;
+  return r;
 };
 
 loadData()

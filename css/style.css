@@ -662,3 +662,4 @@ html[data-lang="he"] .daily-t { font-family: system-ui, 'Segoe UI', sans-serif; 
 }
 .daily-row.today .daily-dn, .daily-row.today .daily-t { color: var(--gold); }
 .daily-play { width: 100%; margin: 14px 0 0; font-size: 19px; padding: 13px 0 11px; }
+.daily-play:disabled { opacity: .45; pointer-events: none; }

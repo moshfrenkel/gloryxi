@@ -164,7 +164,7 @@ function _sampleScorers(numGoals, players, scorers, maxMinute) {
       rnd -= weights[i];
       if (rnd <= 0) { scorer = players[i]; break; }
     }
-    scorers.push({ name: scorer.n || scorer.name || '?', minute: 1 + Math.floor(Math.random() * maxMinute) });
+    scorers.push({ name: scorer.n || scorer.name || '?', minute: 1 + Math.floor(Math.random() * maxMinute), p: scorer.p, slot: scorer.slot });
   }
   scorers.sort((a, b) => a.minute - b.minute);
 }
@@ -409,7 +409,7 @@ function _slotToPos(slot) {
 
 function _xiToPlayers(normXi) {
   return Object.entries(normXi).map(([slot, p]) => ({
-    n: p.name || slot, p: p.p || _slotToPos(slot), r: p.r || 50,
+    n: p.name || slot, p: p.p || _slotToPos(slot), r: p.r || 50, slot,
   }));
 }
 
