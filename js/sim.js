@@ -142,8 +142,11 @@ export function simulateKnockout(eloA, eloB, playersA) {
     if (scoreA === scoreB) {
       const penWinProbA = Math.min(Math.max(0.5 + d * 0.35, 0.25), 0.75);
       const winnerIsA = Math.random() < penWinProbA;
-      const penA = winnerIsA ? (Math.random() < 0.5 ? 5 : 4) : (Math.random() < 0.5 ? 4 : 3);
-      const penB = winnerIsA ? (Math.random() < 0.5 ? 4 : 3) : (Math.random() < 0.5 ? 5 : 4);
+      // loser must always score fewer than the winner — a drawn shootout is impossible
+      const winPens = Math.random() < 0.5 ? 5 : 4;
+      const losePens = winPens - (Math.random() < 0.5 ? 1 : 2);
+      const penA = winnerIsA ? winPens : losePens;
+      const penB = winnerIsA ? losePens : winPens;
       return { scoreA, scoreB, scorers, note: `(pens ${penA}-${penB})`, winnerIsA };
     }
     note = '(a.e.t.)';
