@@ -65,17 +65,23 @@ function gamesBucket(n) {
 
 // ── data ──────────────────────────────────────────────────────────────────────
 async function loadData() {
-  const [p, t, f, ch] = await Promise.all([
+  const [p, t, f, ch, ar, fx, rs] = await Promise.all([
     fetch('./data/players.json').then(r => r.json()),
     fetch('./data/teams.json').then(r => r.json()),
     fetch('./data/field2026.json').then(r => r.json()),
     fetch('./data/challenges.json').then(r => r.json()).catch(() => []),
+    fetch('./data/articles.json').then(r => r.json()).catch(() => ({ articles: [] })),
+    fetch('./data/fixtures.json').then(r => r.json()).catch(() => ({ fixtures: [] })),
+    fetch('./data/results.json').then(r => r.json()).catch(() => ({ matches: [] })),
   ]);
   S.players = p;
   S.teams = t.teams;
   S.combos = t.combos;
   S.field = f;
   S.challenges = ch;
+  S.articles = (ar && ar.articles) || [];
+  S.fixtures = (fx && fx.fixtures) || [];
+  S.results = (rs && rs.matches) || [];
   for (const pl of p) {
     const k = pl.c + '|' + pl.y;
     if (!S.squads.has(k)) S.squads.set(k, []);
@@ -1404,6 +1410,92 @@ function showDaily() {
   if (todayRow) todayRow.scrollIntoView({ block: 'center' });
 }
 
+// ── Dante's daily story ───────────────────────────────────────────────────────
+let curArticle = null;
+function todayArticle() {
+  const arts = S.articles || [];
+  if (!arts.length) return null;
+  const iso = _todayIso();
+  return arts.find(a => a.date === iso)
+    || arts.filter(a => a.date >= iso).sort((x, y) => x.date.localeCompare(y.date))[0]
+    || arts.slice().sort((x, y) => y.date.localeCompare(x.date))[0];
+}
+function updateStoryBtn() {
+  curArticle = todayArticle();
+  const btn = $('story-btn');
+  if (!btn) return;
+  if (!curArticle) { btn.hidden = true; return; }
+  btn.hidden = false;
+  $('story-btn-label').textContent = t('story_today');
+}
+function openStory(a) {
+  if (!a) return;
+  const he = getLang() === 'he';
+  const sc = document.querySelector('.story-scroll');
+  if (sc) { sc.dir = he ? 'rtl' : 'ltr'; sc.style.textAlign = 'start'; }
+  $('story-kicker').textContent = t('story_today');
+  $('story-back-top-label').textContent = t('story_back');
+  $('story-title').textContent = he ? a.t_he : a.t_en;
+  $('story-dek').textContent = he ? a.dek_he : a.dek_en;
+  $('story-by').textContent = t('story_by', a.by);
+  const img = $('story-hero-img'); img.src = a.hero; img.alt = '';
+  const body = $('story-body'); body.innerHTML = '';
+  (he ? a.body_he : a.body_en).forEach(par => { const p = document.createElement('p'); p.textContent = par; body.appendChild(p); });
+  const dyk = he ? a.dyk_he : a.dyk_en;
+  if (dyk) { $('story-dyk').hidden = false; $('story-dyk-k').textContent = t('dyk_label'); $('story-dyk-p').textContent = dyk; }
+  else { $('story-dyk').hidden = true; }
+  $('story-disc').textContent = t('story_disclaimer', a.by);
+  $('story-src-label').textContent = t('sources_label');
+  const ul = $('story-src-list'); ul.innerHTML = '';
+  (a.sources || []).forEach(s => { const li = document.createElement('li'); li.textContent = s; ul.appendChild(li); });
+  $('story-back-label').textContent = t('story_back');
+  if (sc) sc.scrollTop = 0;
+  show('s-story');
+}
+
+// ── today's live fixtures card (home) ─────────────────────────────────────────
+function _slateIso(f) {
+  const h = parseInt(String(f.time_il).slice(0, 2), 10);
+  if (h < 6) { const d = new Date(f.date_il + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); }
+  return f.date_il;
+}
+function todayMatches() {
+  const iso = _todayIso();
+  return (S.fixtures || []).filter(f => _slateIso(f) === iso).sort((a, b) => a.kickoff_utc.localeCompare(b.kickoff_utc));
+}
+function resultFor(id) { return (S.results || []).find(r => r.id === id) || null; }
+function _crescent() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const s = document.createElementNS(NS, 'svg');
+  s.setAttribute('width', '8'); s.setAttribute('height', '8'); s.setAttribute('viewBox', '0 0 8 8'); s.setAttribute('aria-hidden', 'true');
+  s.classList.add('ts-cres');
+  const p = document.createElementNS(NS, 'path');
+  p.setAttribute('d', 'M5.6 1 A3 3 0 1 0 5.6 7 A2.3 2.3 0 1 1 5.6 1Z'); p.setAttribute('fill', 'currentColor');
+  s.appendChild(p); return s;
+}
+function _stripItem(f, tieFix) {
+  const it = document.createElement('span');
+  it.className = 'ts-item' + (tieFix && (f.home + ' - ' + f.away) === tieFix ? ' tie' : '');
+  const teams = document.createElement('span'); teams.textContent = f.home + ' — ' + f.away;
+  it.appendChild(teams);
+  const res = resultFor(f.id);
+  const sc = document.createElement('span'); sc.className = 'ts-sc';
+  if (res) { it.classList.add('played'); sc.textContent = res.ft[0] + '-' + res.ft[1]; }
+  else { if (f.after_midnight) it.appendChild(_crescent()); sc.textContent = f.time_il; }
+  it.appendChild(sc);
+  return it;
+}
+function renderTodayCard() {
+  const card = $('today-card'); if (!card) return;
+  const ms = todayMatches();
+  if (!ms.length) { card.hidden = true; return; }
+  card.hidden = false;
+  const track = $('today-card-list'); track.innerHTML = '';
+  const tieFix = curArticle && curArticle.fixture;
+  // two passes = a seamless marquee loop (the @keyframes translate spans one copy)
+  for (let pass = 0; pass < 2; pass++) for (const f of ms) track.appendChild(_stripItem(f, tieFix));
+}
+
 // ── boot ──────────────────────────────────────────────────────────────────────
 let boardReturn = 's3';
 function wire() {
@@ -1416,6 +1508,9 @@ function wire() {
   });
   $('daily-btn').addEventListener('click', showDaily);
   $('daily-close').addEventListener('click', () => show('s1'));
+  $('story-btn').addEventListener('click', () => { openStory(curArticle); track('story_open', { date: curArticle ? curArticle.date : '' }); });
+  $('story-back').addEventListener('click', () => show('s1'));
+  $('story-back-top').addEventListener('click', () => show('s1'));
   $('howto-link').addEventListener('click', () => showHowto(false));
   $('ht-next').addEventListener('click', htNext);
   $('btn-lang').addEventListener('click', () => {
@@ -1423,6 +1518,8 @@ function wire() {
     setLang(to);
     updateLangButton();
     updateDailyBtn();
+    updateStoryBtn();
+    if ($('s-story').classList.contains('active') && curArticle) openStory(curArticle);
     track('lang_switch', { to });
   });
   $('btn-skip-team').addEventListener('click', () => skip('team'));
@@ -1494,7 +1591,7 @@ window.__gxiProofMark = (c, J, xi, ok, tryNo) => {
 };
 
 loadData()
-  .then(() => { wire(); updateLangButton(); updateDailyBtn(); show('s1'); })
+  .then(() => { wire(); updateLangButton(); updateDailyBtn(); updateStoryBtn(); show('s1'); })
   .catch(err => {
     console.error('load failed', err);
     document.querySelector('#loading .load-cap').textContent = t('load_fail');

@@ -1,0 +1,348 @@
+{
+ "source": "openfootball/worldcup.json (public domain)",
+ "count": 9,
+ "matches": [
+  {
+   "id": "2026-06-11_mexico_south-africa",
+   "date_il": "2026-06-11",
+   "home": "Mexico",
+   "away": "South Africa",
+   "ft": [
+    2,
+    0
+   ],
+   "ht": [
+    1,
+    0
+   ],
+   "scorers": [
+    {
+     "name": "Julián Quiñones",
+     "minute": "9",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Raúl Jiménez",
+     "minute": "67",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    }
+   ],
+   "status": "played"
+  },
+  {
+   "id": "2026-06-11_south-korea_czech-republic",
+   "date_il": "2026-06-12",
+   "home": "South Korea",
+   "away": "Czech Republic",
+   "ft": [
+    2,
+    1
+   ],
+   "ht": [
+    0,
+    0
+   ],
+   "scorers": [
+    {
+     "name": "Hwang In-Beom",
+     "minute": "67",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Oh Hyeon-Gyu",
+     "minute": "80",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Ladislav Krejcí",
+     "minute": "59",
+     "penalty": false,
+     "og": false,
+     "team": "away"
+    }
+   ],
+   "status": "played"
+  },
+  {
+   "id": "2026-06-12_canada_bosnia-herzegovina",
+   "date_il": "2026-06-12",
+   "home": "Canada",
+   "away": "Bosnia & Herzegovina",
+   "ft": [
+    1,
+    1
+   ],
+   "ht": [
+    0,
+    1
+   ],
+   "scorers": [
+    {
+     "name": "Cyle Larin",
+     "minute": "78",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Jovo Lukić",
+     "minute": "21",
+     "penalty": false,
+     "og": false,
+     "team": "away"
+    }
+   ],
+   "status": "played"
+  },
+  {
+   "id": "2026-06-13_qatar_switzerland",
+   "date_il": "2026-06-13",
+   "home": "Qatar",
+   "away": "Switzerland",
+   "ft": [
+    1,
+    1
+   ],
+   "ht": [
+    0,
+    1
+   ],
+   "scorers": [
+    {
+     "name": "Boualem Khoukhi",
+     "minute": "90+4",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Breel Embolo",
+     "minute": "17",
+     "penalty": true,
+     "og": false,
+     "team": "away"
+    }
+   ],
+   "status": "played"
+  },
+  {
+   "id": "2026-06-13_brazil_morocco",
+   "date_il": "2026-06-14",
+   "home": "Brazil",
+   "away": "Morocco",
+   "ft": [
+    1,
+    1
+   ],
+   "ht": [
+    1,
+    1
+   ],
+   "scorers": [
+    {
+     "name": "Vinícius Júnior",
+     "minute": "32",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Ismael Saibari",
+     "minute": "21",
+     "penalty": false,
+     "og": false,
+     "team": "away"
+    }
+   ],
+   "status": "played"
+  },
+  {
+   "id": "2026-06-13_haiti_scotland",
+   "date_il": "2026-06-14",
+   "home": "Haiti",
+   "away": "Scotland",
+   "ft": [
+    0,
+    1
+   ],
+   "ht": [
+    0,
+    1
+   ],
+   "scorers": [
+    {
+     "name": "John McGinn",
+     "minute": "28",
+     "penalty": false,
+     "og": false,
+     "team": "away"
+    }
+   ],
+   "status": "played"
+  },
+  {
+   "id": "2026-06-12_usa_paraguay",
+   "date_il": "2026-06-13",
+   "home": "USA",
+   "away": "Paraguay",
+   "ft": [
+    4,
+    1
+   ],
+   "ht": [
+    3,
+    0
+   ],
+   "scorers": [
+    {
+     "name": "Damian Bobadilla",
+     "minute": "7",
+     "penalty": false,
+     "og": true,
+     "team": "home"
+    },
+    {
+     "name": "Folarin Balogun",
+     "minute": "31",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Folarin Balogun",
+     "minute": "45+5",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Giovanni Reyna",
+     "minute": "90+8",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Mauricio",
+     "minute": "73",
+     "penalty": false,
+     "og": false,
+     "team": "away"
+    }
+   ],
+   "status": "played"
+  },
+  {
+   "id": "2026-06-13_australia_turkey",
+   "date_il": "2026-06-14",
+   "home": "Australia",
+   "away": "Turkey",
+   "ft": [
+    2,
+    0
+   ],
+   "ht": [
+    1,
+    0
+   ],
+   "scorers": [
+    {
+     "name": "Nestory Irankunda",
+     "minute": "27",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Connor Metcalfe",
+     "minute": "75",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    }
+   ],
+   "status": "played"
+  },
+  {
+   "id": "2026-06-14_germany_cura-ao",
+   "date_il": "2026-06-14",
+   "home": "Germany",
+   "away": "Curaçao",
+   "ft": [
+    7,
+    1
+   ],
+   "ht": [
+    3,
+    1
+   ],
+   "scorers": [
+    {
+     "name": "Felix Nmecha",
+     "minute": "6",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Nico Schlotterbeck",
+     "minute": "38",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Kai Havertz",
+     "minute": "45+5",
+     "penalty": true,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Kai Havertz",
+     "minute": "88",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Jamal Musiala",
+     "minute": "47",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Nathaniel Brown",
+     "minute": "68",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Deniz Undav",
+     "minute": "78",
+     "penalty": false,
+     "og": false,
+     "team": "home"
+    },
+    {
+     "name": "Livano Comenencia",
+     "minute": "21",
+     "penalty": false,
+     "og": false,
+     "team": "away"
+    }
+   ],
+   "status": "played"
+  }
+ ]
+}

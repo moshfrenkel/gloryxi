@@ -15,6 +15,17 @@ const D = {
                 he: 'ללא קשר לפיפ"א · נתונים: Fjelstul World Cup Database (CC-BY-SA 4.0) · בלי תמונות שחקנים<br>בלי עוגיות · ספירות אנונימיות, ובבחירתך כינוי + תוצאה לטבלה היומית (שרת באירופה, נמחק בסוף הטורניר) · בלי מידע אישי מזהה' },
   a11y_link:  { en: 'Accessibility statement', he: 'הצהרת נגישות' },
 
+  // S-STORY — Dante's daily article
+  story_today: { en: "TODAY'S STORY", he: 'כתבת היום' },
+  story_read:  { en: 'READ', he: 'קרא' },
+  story_back:  { en: 'BACK', he: 'חזרה' },
+  story_by:    { en: (n) => 'By ' + n + ' · GloryXI', he: (n) => 'מאת ' + n + ' · GloryXI' },
+  dyk_label:   { en: 'DID YOU KNOW?', he: 'הידעת?' },
+  sources_label: { en: 'SOURCES', he: 'מקורות' },
+  today_title: { en: 'TODAY AT THE MONDIAL', he: 'היום במונדיאל' },
+  story_disclaimer: { en: (n) => 'Written by ' + n + ", GloryXI's AI reporter. May contain inaccuracies, always worth cross-checking the sources below.",
+                      he: (n) => 'נכתב על ידי ' + n + ', כתב ה-AI של GloryXI. עלול להכיל אי-דיוקים, תמיד כדאי להצליב מול המקורות למטה.' },
+
   // daily leaderboard
   lb_label:   { en: "JOIN TODAY'S BOARD — PICK A NICKNAME", he: 'הצטרף לטבלה של היום, בחר כינוי' },
   lb_ph:      { en: 'Your nickname', he: 'הכינוי שלך' },

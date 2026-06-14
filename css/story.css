@@ -1,0 +1,64 @@
+/* S-STORY — Dante's daily article reader (additive; reuses app palette vars) */
+#s-story.active { display: flex; flex-direction: column; height: 100vh; max-height: 100vh; overflow: hidden; }
+.status-strip.story-top { display: flex; align-items: center; gap: 12px; }
+.story-back-top { display: inline-flex; align-items: center; gap: 7px; color: var(--hot);
+  padding: 8px 6px; margin: -2px 0; flex: 0 0 auto; }
+.story-back-top span { color: var(--hot); }
+.story-back-top:active { opacity: 0.6; }
+.story-scroll { flex: 1 1 auto; overflow-y: auto; padding: 6px 20px 20px; -webkit-overflow-scrolling: touch; }
+
+.story-title {
+  font-family: 'Anton', 'Arial Narrow', sans-serif; font-weight: 400;
+  font-size: clamp(28px, 7.5vw, 44px); line-height: 1.03; color: var(--gold);
+  margin: 8px 0 0; text-shadow: 3px 2px 0 rgba(16,16,16,0.35);
+}
+.story-dek {
+  font-size: 16px; font-style: italic; color: var(--bone); opacity: 0.92;
+  margin-top: 12px; border-inline-start: 4px solid var(--hot); padding-inline-start: 12px;
+}
+.story-by { margin-top: 12px; color: var(--hot); font-size: 12px; letter-spacing: 0.04em; }
+
+.story-hero { margin: 16px 0 4px; overflow: hidden; border: 1px solid rgba(237,232,223,0.12);
+  clip-path: polygon(0 2%, 6% 0, 100% 1%, 100% 98%, 94% 100%, 0 99%); }
+.story-hero img { width: 100%; display: block; }
+
+.story-body p { font-size: 16.5px; line-height: 1.78; color: var(--bone); margin: 18px 0 0; }
+.story-body p:first-child { margin-top: 16px; }
+
+.story-dyk { margin: 22px 0 0; background: var(--paper-deep); border: 1px dashed var(--gold);
+  border-radius: 12px; padding: 14px 16px; }
+.story-dyk .dyk-k { color: var(--gold); font-size: 13px; margin-bottom: 6px; }
+.story-dyk p { font-size: 15px; line-height: 1.6; color: var(--bone); }
+
+.story-disc { font-size: 12.5px; line-height: 1.5; color: var(--ink); background: var(--gold);
+  padding: 12px 15px; margin: 22px 0 0; font-weight: 600; }
+
+.story-sources { margin-top: 20px; border-top: 1px solid var(--hair); padding-top: 14px; }
+.story-sources .t-cap { color: var(--gold); margin-bottom: 8px; }
+.story-sources ul { list-style: none; padding: 0; margin: 0; }
+.story-sources li { font-size: 13px; color: var(--bone); opacity: 0.82; margin-bottom: 7px;
+  padding-inline-start: 14px; position: relative; }
+.story-sources li::before { content: "·"; color: var(--gold); position: absolute; inset-inline-start: 0; font-weight: 900; }
+
+/* s1 entry button — distinguish the story strip from the daily strip with a gold edge */
+.story-strip { border-inline-start: 4px solid var(--gold) !important; }
+
+/* TODAY strip — gold marquee ticker across the screen, click to pause, with a diagonal cap */
+.today-strip { position: absolute; top: 108px; left: 0; right: 0; z-index: 7; height: 30px;
+  display: flex; align-items: stretch; background: var(--gold); overflow: hidden;
+  box-shadow: 0 3px 0 rgba(16,16,16,0.22); cursor: pointer; }
+.ts-cap { flex: 0 0 auto; width: 42px; background: var(--ink); color: var(--gold);
+  display: flex; align-items: center; justify-content: center; padding-inline-end: 9px;
+  clip-path: polygon(0 0, 100% 0, 66% 100%, 0 100%); }   /* the small diagonal */
+.today-strip.paused .ts-cap { color: #b9ad9d; }
+.ts-window { flex: 1 1 auto; overflow: hidden; position: relative; }
+.ts-track { position: absolute; top: 0; height: 30px; display: inline-flex; align-items: center;
+  white-space: nowrap; will-change: transform; animation: tsScroll 30s linear infinite; }
+.today-strip.paused .ts-track { animation-play-state: paused; }
+@keyframes tsScroll { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+.ts-item { display: inline-flex; align-items: center; gap: 7px; padding: 0 19px; font-size: 13px;
+  font-weight: 700; color: var(--ink); border-inline-end: 2px solid rgba(16,16,16,0.16); }
+.ts-item .ts-sc { font-variant-numeric: tabular-nums; }
+.ts-item.played .ts-sc { background: var(--ink); color: var(--gold); padding: 1px 6px; }
+.ts-item.tie { text-decoration: underline; text-underline-offset: 3px; }
+.ts-cres { display: inline-flex; opacity: 0.65; }
