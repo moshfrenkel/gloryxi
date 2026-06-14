@@ -159,8 +159,10 @@
   <div class="s2-spine t-cap" aria-hidden="true" data-i18n="s2_spine">THE DRAW</div>
   <div class="s2-round t-cap" id="s2-round"></div>
   <div class="spin-zone">
-    <div class="spin-flag-frame">
-      <img id="spin-flag" alt="" draggable="false">
+    <div class="flagreel" id="flagreel">
+      <div class="reel-fade t" aria-hidden="true"></div>
+      <div class="flag-track" id="flag-track"></div>
+      <div class="reel-fade b" aria-hidden="true"></div>
     </div>
     <div class="spin-year-frame">
       <div id="spin-year">––––</div>
@@ -304,5 +306,6 @@
 </div>
 
 <script type="module" src="./js/main.js"></script>
+<script defer src="./js/fx.js"></script>
 </body>
 </html>

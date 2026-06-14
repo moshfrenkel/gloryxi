@@ -7,6 +7,7 @@
 import { simulateTournament, computeTeamScores, computeTeamElo } from './sim.js';
 import { shareResult } from './share.js';
 import { t, getLang, setLang, applyStatic } from './i18n.js';
+import { kitFor, jerseySVG } from './kits.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -246,43 +247,102 @@ function startDraw(constraint) {
   stamp.classList.remove('stamped');
   updateSkipBoxes(false);
 
-  const flagEl = $('spin-flag');
   const yearEl = $('spin-year');
-  flagEl.classList.add('spin-blur');
-  flagEl.onerror = function () { this.style.visibility = 'hidden'; };
+  const reel = $('flagreel');
+  const track = $('flag-track');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  const CELL_H = 200;          // must match .flag-cell height in CSS
   const countries = Object.keys(S.teams);
   const years = [...new Set(S.combos.map(c => c[1]))];
 
-  let elapsed = 0;
-  let interval = 65;
-  const totalFast = 1100;     // fast phase ms
-
-  function tick() {
-    elapsed += interval;
-    const done = elapsed >= totalFast + 700;
-    if (done) {
-      // lock on target
-      flagEl.style.visibility = '';
-      flagEl.src = flagSrc(S.draw.c);
-      flagEl.classList.remove('spin-blur');
-      yearEl.textContent = S.draw.y;
-      stamp.textContent = S.draw.c + ' ' + S.draw.y;
-      stamp.classList.add('stamped');
-      S.spinning = false;
-      updateSkipBoxes(true);
-      setTimeout(() => { if (!S.spinning) showSquad(); }, 850);
-      return;
-    }
-    // decelerate after fast phase
-    if (elapsed > totalFast) interval = Math.min(interval * 1.35, 320);
-    const rc = countries[Math.floor(Math.random() * countries.length)];
-    flagEl.style.visibility = '';
-    flagEl.src = flagSrc(rc);
-    yearEl.textContent = years[Math.floor(Math.random() * years.length)];
-    setTimeout(tick, interval);
+  // build a vertical reel of random nation cells, landing on the real target.
+  // the target cell sits well down the strip so the reel has room to scroll.
+  const PAD_BEFORE = 18;       // random cells the reel travels past before landing
+  const cells = [];
+  for (let i = 0; i < PAD_BEFORE; i++) {
+    cells.push(countries[Math.floor(Math.random() * countries.length)]);
   }
-  setTimeout(tick, interval);
+  const stopIndex = cells.length;     // index of the target cell
+  cells.push(S.draw.c);
+  // a few trailing cells so the window below the line isn't empty mid-spin
+  for (let i = 0; i < 4; i++) {
+    cells.push(countries[Math.floor(Math.random() * countries.length)]);
+  }
+
+  track.innerHTML = '';
+  for (const c of cells) {
+    const cell = document.createElement('div');
+    cell.className = 'flag-cell';
+    const img = document.createElement('img');
+    img.src = flagSrc(c);
+    img.alt = c;
+    img.draggable = false;
+    img.onerror = function () { this.style.visibility = 'hidden'; };
+    const nm = document.createElement('div');
+    nm.className = 'reel-nm';
+    nm.textContent = c;
+    cell.append(img, nm);
+    track.appendChild(cell);
+  }
+
+  // reset reel to the top, then translateY down so the target lands on the line
+  track.style.transition = 'none';
+  track.style.transform = 'translateY(0)';
+  void track.offsetHeight;     // reflow so the next transition takes effect
+  const endY = -(stopIndex * CELL_H);
+
+  yearEl.textContent = '––––';
+
+  // year ticks random values while the reel spins, then pops in on lock
+  let yTimer = null;
+  if (!reduce) {
+    yTimer = setInterval(() => {
+      yearEl.textContent = years[Math.floor(Math.random() * years.length)];
+    }, 90);
+  }
+
+  function land() {
+    if (yTimer) clearInterval(yTimer);
+    yearEl.textContent = S.draw.y;
+    // year pops in with a scale bounce
+    if (!reduce && yearEl.animate) {
+      yearEl.animate(
+        [{ transform: 'scale(.7)', opacity: 0.3 },
+         { transform: 'scale(1.16)', opacity: 1 },
+         { transform: 'scale(1)' }],
+        { duration: 460, easing: 'cubic-bezier(.2,.9,.2,1.3)' });
+    }
+    stamp.textContent = S.draw.c + ' ' + S.draw.y;
+    stamp.classList.add('stamped');
+    S.spinning = false;
+    updateSkipBoxes(true);
+    setTimeout(() => { if (!S.spinning) showSquad(); }, 850);
+  }
+
+  if (reduce) {
+    // instant land — no reel motion
+    track.style.transform = 'translateY(' + endY + 'px)';
+    land();
+    return;
+  }
+
+  reel.classList.add('spinning');
+  // smooth vertical reel, ~2.6s, cubic-bezier ease-out
+  track.style.transition = 'transform 2.6s cubic-bezier(.12,.72,.1,1)';
+  track.style.transform = 'translateY(' + endY + 'px)';
+
+  setTimeout(() => {
+    reel.classList.remove('spinning');
+    // 170ms 6px overshoot bounce settle
+    if (track.animate) {
+      track.animate(
+        [{ transform: 'translateY(' + (endY + 6) + 'px)' },
+         { transform: 'translateY(' + endY + 'px)' }],
+        { duration: 170, easing: 'ease-out' });
+    }
+    land();
+  }, 2750);
 }
 
 function updateSkipBoxes(visible) {
@@ -501,14 +561,25 @@ function renderPitchInto(containerId, withMeta, onSlotTap) {
       const p = S.xi[slot];
       const f = document.createElement('div');
       f.className = 'b-fill';
-      f.appendChild(makeFlag(p.c));
-      const nm = document.createElement('div');
-      nm.className = 'b-name';
-      nm.textContent = surname(p.n).toUpperCase();
+
+      // the colored "magnet": nation-kit jersey, sits above the chalk
+      const jersey = document.createElement('div');
+      jersey.className = 'b-jersey';
+      jersey.innerHTML = jerseySVG(p.c, 46);
+      // small flag badge pinned on the jersey collar (nice touch, keeps makeFlag)
+      const badge = makeFlag(p.c, 'b-flag-badge');
+      jersey.appendChild(badge);
+      // GOLD rating disc, pinned to the jersey (bottom-right) like tactics-B's magnet
       const r = document.createElement('div');
       r.className = 'b-r';
       r.textContent = p.r;
-      f.append(nm, r);
+      jersey.appendChild(r);
+      f.appendChild(jersey);
+
+      const nm = document.createElement('div');
+      nm.className = 'b-name';
+      nm.textContent = surname(p.n).toUpperCase();
+      f.append(nm);
       if (withMeta) {
         const meta = document.createElement('div');
         meta.className = 'b-meta';
@@ -888,6 +959,28 @@ function _goalsBySlot(J) {
   return g;
 }
 
+// which of your players actually satisfied a goal-based daily challenge — for the share-card indicator
+function _challengeSatisfiers(c, J) {
+  if (!c || !c.win || !J) return [];
+  const g = _goalsBySlot(J);
+  const out = [], seen = new Set();
+  const add = (slot) => {
+    if (g[slot] && !seen.has(slot) && S.xi[slot]) {
+      seen.add(slot);
+      out.push({ name: surname(S.xi[slot].n).toUpperCase(), goals: g[slot] });
+    }
+  };
+  for (const w of c.win) {
+    if (w.k === 'scorerPos') Object.keys(g).forEach(s => { if (S.xi[s] && S.xi[s].p === w.pos) add(s); });
+    else if (w.k === 'topScorer') { const mx = Math.max(0, ...Object.values(g)); Object.keys(g).forEach(s => { if (g[s] === mx) add(s); }); }
+    else if (w.k === 'strikers') ['ST1', 'ST2'].forEach(add);
+    else if (w.k === 'hatTrick') {
+      for (const m of J.journey) { const per = {}; for (const sc of (m.scorers || [])) if (sc.slot && (per[sc.slot] = (per[sc.slot] || 0) + 1) >= 3) add(sc.slot); }
+    }
+  }
+  return out;
+}
+
 function evalCond(w, J) {
   const journey = J.journey;
   switch (w.k) {
@@ -1176,7 +1269,7 @@ function wire() {
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
-    const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0 } : null;
+    const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0, sat: _challengeSatisfiers(S.challenge, S.journey) } : null;
     shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily).catch(console.error);
   });
 }
