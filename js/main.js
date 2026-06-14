@@ -1139,7 +1139,7 @@ function buildScoreRow(c, J) {
 
 function markSent(nick) {
   $('lb-sent').textContent = t('lb_sent', nick);
-  $('lb-sent').hidden = false; $('lb-setnick').hidden = true;
+  $('lb-sent').hidden = false; $('lb-change').hidden = false; $('lb-setnick').hidden = true;
 }
 
 function renderLeaderboardRow(c, J) {
@@ -1150,7 +1150,7 @@ function renderLeaderboardRow(c, J) {
   $('lb-view').hidden = false;
   const nick = getNick();
   if (nick) { submitDailyScore(buildScoreRow(c, J)); markSent(nick); }
-  else { $('lb-sent').hidden = true; $('lb-setnick').hidden = false; $('lb-nick').value = ''; }
+  else { $('lb-sent').hidden = true; $('lb-change').hidden = true; $('lb-setnick').hidden = false; $('lb-nick').value = ''; }
 }
 
 // ── in-app live leaderboard ───────────────────────────────────────────────────
@@ -1446,6 +1446,10 @@ function wire() {
     markSent(v);
   });
   $('lb-nick').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('lb-save').click(); } });
+  $('lb-change').addEventListener('click', () => {
+    setNick(''); $('lb-sent').hidden = true; $('lb-change').hidden = true;
+    $('lb-setnick').hidden = false; $('lb-nick').value = ''; $('lb-nick').focus();
+  });
   $('lb-view').addEventListener('click', () => openBoard(S.challenge, 's6'));
   $('daily-board-link').addEventListener('click', () => openBoard(todayChallenge(), 's-daily'));
   $('board-back').addEventListener('click', () => show(S.boardReturn || 's1'));

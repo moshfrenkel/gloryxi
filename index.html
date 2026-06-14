@@ -24,6 +24,7 @@
        browser is excluded from analytics forever (umami honours this key) */
     try {
       if (location.search.indexOf('boss') !== -1) localStorage.setItem('umami.disabled', '1');
+      if (location.search.indexOf('resetnick') !== -1) localStorage.removeItem('gxi_nick');
     } catch (e) { /* ok */ }
   </script>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="6cae454a-64d6-4b20-b205-41c0088eb00f" data-domains="moshfrenkel.github.io"></script>
@@ -315,6 +316,7 @@
   </div>
   <div id="lb-row" class="lb-row" hidden>
     <div id="lb-sent" class="lb-sent" hidden dir="auto"></div>
+    <button id="lb-change" class="lb-open-link" hidden data-i18n="lb_change">change nickname</button>
     <button id="lb-view" class="lb-open-link" hidden data-i18n="lb_view">SEE THE DAILY BOARD &#8594;</button>
     <div id="lb-setnick" class="lb-setnick" hidden>
       <label for="lb-nick" id="lb-nick-label" class="lb-nick-label" data-i18n="lb_label">JOIN TODAY'S BOARD — PICK A NICKNAME</label>

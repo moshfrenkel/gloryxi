@@ -22,6 +22,7 @@ const D = {
   lb_note:    { en: "Saved only if you choose to enter: a nickname + your result, shown on the daily board to all players (EU server). Pick a name that doesn't identify you. No tracking. Deleted when the tournament ends.",
                 he: 'נשמרים רק אם תבחר להיכנס: כינוי + התוצאה, שמוצגים בטבלה היומית לכל השחקנים (שרת באירופה). בחר כינוי שלא מזהה אותך. בלי מעקב. נמחק בסוף הטורניר.' },
   lb_sent:    { en: (n) => 'ON THE DAILY BOARD AS ' + n, he: (n) => 'נשלחת לטבלה היומית בתור ' + n },
+  lb_change:  { en: 'change nickname', he: 'שנה כינוי' },
   lb_today:   { en: "TODAY'S BOARD &#8594;", he: 'הטבלה של היום &#8592;' },
   lb_view:    { en: 'SEE THE DAILY BOARD &#8594;', he: 'לטבלה היומית &#8592;' },
   lb_board_title: { en: 'DAILY BOARD', he: 'הטבלה היומית' },
