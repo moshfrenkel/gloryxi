@@ -1208,7 +1208,7 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 .lb-open-link { display: inline-block; margin-top: 8px; background: none; border: none; color: var(--hot); font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.04em; text-decoration: underline; cursor: pointer; }
 
 /* ── in-app daily leaderboard screen ───────────────────────────────────── */
-#s-board { padding: 0 18px 18px; display: flex; flex-direction: column; }
+#s-board { padding: 0 18px 18px; }
 .board-head { padding: 10px 4px 8px; }
 .board-title { font-family: var(--chalk); font-weight: 700; color: var(--gold); font-size: clamp(24px, 7vw, 34px); line-height: 1.05; margin: 0; }
 .board-sub { color: var(--grey, #9a8f80); margin: 4px 0 0; letter-spacing: 0.12em; }
