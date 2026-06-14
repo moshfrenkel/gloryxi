@@ -1194,17 +1194,17 @@ a:focus-visible, button:focus-visible, input:focus-visible,
   font-size: 12px; letter-spacing: 0.03em; padding: 6px 12px; rotate: -0.6deg;
   box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
 }
-.lb-nick-label { display: block; color: var(--hot); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
-.lb-nick-line { display: flex; gap: 8px; align-items: stretch; }
+.lb-setnick { border: 1.5px dashed rgba(43,212,192,0.5); border-radius: 6px; padding: 13px 14px; margin-top: 4px; }
+.lb-nick-label { display: block; color: var(--hot); font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 9px; line-height: 1.35; }
 .lb-nick {
-  flex: 1; min-width: 0; background: rgba(237,232,223,0.06);
-  border: 1.5px solid rgba(237,232,223,0.4); color: var(--bone);
-  font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 15px;
-  padding: 9px 12px; border-radius: 3px;
+  width: 100%; box-sizing: border-box; background: rgba(237,232,223,0.07);
+  border: 1.5px solid rgba(237,232,223,0.5); color: var(--bone);
+  font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 16px;
+  padding: 12px 14px; border-radius: 4px;
 }
 .lb-nick::placeholder { color: var(--grey, #9a8f80); }
-.lb-save { white-space: nowrap; }
-.lb-note { color: var(--grey, #9a8f80); font-size: 10px; line-height: 1.5; margin: 7px 0 0; }
+.lb-save { width: 100%; margin-top: 10px; }
+.lb-note { color: var(--grey, #9a8f80); font-size: 10.5px; line-height: 1.55; margin: 9px 0 0; }
 .lb-open-link { display: inline-block; margin-top: 8px; background: none; border: none; color: var(--hot); font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.04em; text-decoration: underline; cursor: pointer; }
 
 /* ── in-app daily leaderboard screen ───────────────────────────────────── */

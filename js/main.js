@@ -1184,7 +1184,7 @@ async function openBoard(c, ret) {
     const li = document.createElement('li');
     li.className = 'board-li' + (mine ? ' me' : '');
     const rank = document.createElement('span'); rank.className = 'b-rank'; rank.textContent = i + 1;
-    const nick = document.createElement('span'); nick.className = 'b-nick'; nick.textContent = r.nick;
+    const nick = document.createElement('span'); nick.className = 'b-nick'; nick.dir = 'auto'; nick.textContent = r.nick;
     if (mine) { const you = document.createElement('span'); you.className = 'b-you t-cap'; you.textContent = ' ' + t('lb_you'); nick.appendChild(you); }
     const det = document.createElement('span'); det.className = 'b-det';
     det.textContent = shortStage(r.stage) + ' · ' + dimDetail(dim, r, he) + (r.ok === true ? ' ✓' : r.ok === false ? ' ✗' : '');

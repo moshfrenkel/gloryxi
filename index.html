@@ -314,14 +314,12 @@
     <div id="result-slots"></div>
   </div>
   <div id="lb-row" class="lb-row" hidden>
-    <div id="lb-sent" class="lb-sent" hidden></div>
+    <div id="lb-sent" class="lb-sent" hidden dir="auto"></div>
     <button id="lb-view" class="lb-open-link" hidden data-i18n="lb_view">SEE THE DAILY BOARD &#8594;</button>
     <div id="lb-setnick" class="lb-setnick" hidden>
-      <label for="lb-nick" id="lb-nick-label" class="lb-nick-label" data-i18n="lb_label">YOUR NAME ON THE DAILY BOARD</label>
-      <div class="lb-nick-line">
-        <input id="lb-nick" class="lb-nick" type="text" maxlength="20" autocomplete="off" spellcheck="false">
-        <button id="lb-save" class="slab slab-line" data-i18n="lb_save">SEND TO BOARD</button>
-      </div>
+      <label for="lb-nick" id="lb-nick-label" class="lb-nick-label" data-i18n="lb_label">JOIN TODAY'S BOARD — PICK A NICKNAME</label>
+      <input id="lb-nick" class="lb-nick" type="text" maxlength="20" autocomplete="off" spellcheck="false" dir="auto" data-i18n-ph="lb_ph" placeholder="Your nickname">
+      <button id="lb-save" class="slab slab-hot lb-save" data-i18n="lb_save">ADD ME TO THE BOARD</button>
       <p id="lb-note" class="lb-note" data-i18n="lb_note">A nickname + your result only, for the daily board. Pick a name that doesn't identify you. No tracking.</p>
     </div>
   </div>

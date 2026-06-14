@@ -16,8 +16,9 @@ const D = {
   a11y_link:  { en: 'Accessibility statement', he: 'הצהרת נגישות' },
 
   // daily leaderboard
-  lb_label:   { en: 'YOUR NAME ON THE DAILY BOARD', he: 'הכינוי שלך לטבלה היומית' },
-  lb_save:    { en: 'SEND TO BOARD', he: 'שלח לטבלה' },
+  lb_label:   { en: "JOIN TODAY'S BOARD — PICK A NICKNAME", he: 'הצטרף לטבלה של היום, בחר כינוי' },
+  lb_ph:      { en: 'Your nickname', he: 'הכינוי שלך' },
+  lb_save:    { en: 'ADD ME TO THE BOARD', he: 'תוסיפו אותי לטבלה' },
   lb_note:    { en: "Saved only if you choose to enter: a nickname + your result, shown on the daily board to all players (EU server). Pick a name that doesn't identify you. No tracking. Deleted when the tournament ends.",
                 he: 'נשמרים רק אם תבחר להיכנס: כינוי + התוצאה, שמוצגים בטבלה היומית לכל השחקנים (שרת באירופה). בחר כינוי שלא מזהה אותך. בלי מעקב. נמחק בסוף הטורניר.' },
   lb_sent:    { en: (n) => 'ON THE DAILY BOARD AS ' + n, he: (n) => 'נשלחת לטבלה היומית בתור ' + n },
