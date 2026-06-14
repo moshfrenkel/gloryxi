@@ -796,6 +796,17 @@ button:active, .player-row:active, .slot-option:active {
   font-size: 14px; color: var(--bone);
 }
 .verdict-avg { margin-top: 5px; }
+.verdict-proof {
+  display: inline-block; margin: 0 0 9px;
+  background: var(--gold); color: var(--ink);
+  font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 800;
+  font-size: 13px; line-height: 1.25; letter-spacing: 0.01em;
+  padding: 6px 12px; rotate: -0.8deg;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+}
+.verdict-proof.miss { background: var(--coral, #E8806B); }
+.verdict-proof[hidden] { display: none; }
+#s6.champion .verdict-proof { box-shadow: 3px 3px 0 var(--hot); }
 
 .tracklist-label { padding: 22px 22px 6px; color: var(--bone); letter-spacing: 0.24em; }
 #tracklist { border-top: 1px solid var(--bone); margin: 0 22px; }

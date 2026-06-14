@@ -137,25 +137,24 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
   x.font = '30px "Courier New", monospace';
   x.fillText(`${R.w}W ${R.d}D ${R.l}L   GOALS ${R.gf}-${R.ga}`, 60, 215);
 
-  // daily challenge strip — full-width gold bar: day + name + gist + WHO satisfied it
-  const satLine = (daily && daily.ok === true && daily.sat && daily.sat.length)
-    ? 'MET BY  ' + daily.sat.map(s => s.name + ' ×' + s.goals).join('    ')
-    : '';
-  const stripH = daily ? (satLine ? 122 : 84) : 0;
+  // daily challenge strip — full-width gold bar: day + name + gist + proof of HOW + the day's mark
+  const tickMark = daily ? (daily.ok === true ? ' ✓' : daily.ok === false ? ' ✗' : '') : '';
+  const rows = [];
   if (daily) {
-    const sy = 238, sh = stripH;
+    rows.push({ s: 'DAILY #' + daily.day + ' · ' + daily.title + tickMark, f: '30px Anton, "Arial Narrow", sans-serif' });
+    const g2 = (daily.gist || '') + (daily.tries ? '  ·  ATTEMPT ' + daily.tries : '');
+    if (g2.trim()) rows.push({ s: g2, f: '600 25px "Space Grotesk", "Segoe UI", sans-serif' });
+    if (daily.proof) rows.push({ s: tickMark.trim() + '  ' + daily.proof, f: '800 24px "Space Grotesk", "Segoe UI", sans-serif' });
+    if (daily.mark) rows.push({ s: daily.mark, f: '800 24px "Space Grotesk", "Segoe UI", sans-serif' });
+  }
+  const stripH = daily ? (18 + rows.length * 30 + 8) : 0;
+  if (daily) {
+    const sy = 238;
     x.fillStyle = GOLD;
-    x.fillRect(60, sy, W - 120, sh);
+    x.fillRect(60, sy, W - 120, stripH);
     x.fillStyle = INK;
     x.textAlign = 'center';
-    x.font = '30px Anton, "Arial Narrow", sans-serif';
-    x.fillText('DAILY #' + daily.day + ' · ' + daily.title + (daily.ok === true ? ' ✓' : daily.ok === false ? ' ✗' : ''), W / 2, sy + 35, W - 160);
-    x.font = '600 26px "Space Grotesk", "Segoe UI", sans-serif';
-    x.fillText((daily.gist || '') + (daily.tries ? '  ·  ATTEMPT ' + daily.tries : ''), W / 2, sy + 68, W - 160);
-    if (satLine) {
-      x.font = '800 25px "Space Grotesk", "Segoe UI", sans-serif';
-      x.fillText(satLine, W / 2, sy + 103, W - 110);
-    }
+    rows.forEach((r, i) => { x.font = r.f; x.fillText(r.s, W / 2, sy + 32 + i * 30, W - 110); });
     x.textAlign = 'left';
   }
 
@@ -277,7 +276,8 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
         files: [file],
         title: 'GloryXI',
         text: (daily ? 'GloryXI Daily #' + daily.day + ' · ' + daily.title + (daily.ok === true ? ' ✓' : daily.ok === false ? ' ✗' : '')
-          + (daily.tries ? (daily.ok === true ? ' in ' + daily.tries + (daily.tries === 1 ? ' try' : ' tries') : ' · attempt ' + daily.tries) : '') + '\n' : '') +
+          + (daily.tries ? (daily.ok === true ? ' in ' + daily.tries + (daily.tries === 1 ? ' try' : ' tries') : ' · attempt ' + daily.tries) : '')
+          + (daily.mark ? '\n' + daily.mark : '') + '\n' : '') +
           teamName + ' — ' + verdict + '. Build your own all-time XI: https://moshfrenkel.github.io/gloryxi/',
       });
       return;

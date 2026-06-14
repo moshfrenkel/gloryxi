@@ -1038,6 +1038,48 @@ function evalChallenge(c, J) {
   return ok;
 }
 
+// ── the day's "mark": the achievement metric that defines best-of-the-day ──────
+// most days rank by how far you went; a few thematic days rank differently.
+const MARK_METRIC = { 6: 'cleanest', 9: 'lowAvg', 13: 'lowAvg', 19: 'mostGoals', 24: 'fewestTries', 30: 'mostGoals', 31: 'cleanest', 34: 'cleanest' };
+const markMetric = (c) => (c && MARK_METRIC[c.d]) || 'furthest';
+const shortStage = (s) => s === 'CHAMPION' ? t('rs_champ') : s === 'GROUP_EXIT' ? t('st_GROUP') : t('st_' + s);
+
+function challengeMark(c, J) {
+  if (!c || !J) return '';
+  const st = shortStage(J.finalStage), R = J.record;
+  switch (markMetric(c)) {
+    case 'lowAvg':      return t('mk_lowavg', Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11), st);
+    case 'cleanest':    return t('mk_clean', R.ga, st);
+    case 'mostGoals':   return t('mk_goals', R.gf, st);
+    case 'fewestTries': return t('mk_tries', S.tryNo || 1, st);
+    default: { const gd = R.gf - R.ga; return t('mk_far', st, (gd >= 0 ? '+' : '') + gd); }
+  }
+}
+
+// human-readable evidence of HOW you met (or missed) a win-condition day — '' for filter/social days
+function challengeProof(c, J) {
+  if (!c || !c.win || !J) return '';
+  const he = getLang() === 'he', ev = (en, h) => he ? h : en;
+  const ok = S.challengeOk === true, w = c.win[0];
+  const sat = _challengeSatisfiers(c, J);
+  const name = sat[0] && sat[0].name;
+  switch (w.k) {
+    case 'scorerPos': return name ? ev(name + ' SCORED FROM THE BACK', name + ' כבש מההגנה') : ev('NO DEFENDER SCORED', 'אף מגן לא כבש');
+    case 'topScorer': return ok ? ev((name || 'YOUR TOP SCORER') + ' LED THE SCORING', (name || 'מלך השערים') + ' הוביל בכיבושים') : ev("TOP SCORER DIDN'T FIT THE RULE", 'מלך השערים לא תאם את החוק');
+    case 'rank1':     return ok ? ev('FINISHED TOP OF THE GROUP', 'סיימת ראשון בבית') : ev("DIDN'T TOP THE GROUP", 'לא סיימת ראשון בבית');
+    case 'result':    return ok ? ev('WON ' + w.gf + '-' + w.ga + (w.ko ? ' IN THE KNOCKOUT' : ''), 'ניצחת ' + w.gf + '-' + w.ga + (w.ko ? ' בנוקאאוט' : '')) : ev('NO ' + w.gf + '-' + w.ga + (w.ko ? ' KNOCKOUT WIN' : ' WIN'), 'לא היה ניצחון ' + w.gf + '-' + w.ga);
+    case 'stage':     return ok ? ev('REACHED THE ' + shortStage(w.min), 'הגעת ל' + shortStage(w.min)) : ev('FELL SHORT OF THE ' + shortStage(w.min), 'לא הגעת ל' + shortStage(w.min));
+    case 'maxGA':     return ok ? ev('CONCEDED ONLY ' + J.record.ga, 'ספגת ' + J.record.ga + ' בלבד') : ev('CONCEDED ' + J.record.ga, 'ספגת ' + J.record.ga);
+    case 'perfect':   return ok ? ev("7 WINS, ALL IN 90'", '7 ניצחונות, הכל בזמן חוקי') : ev('NOT A PERFECT RECORD', 'המאזן לא היה מושלם');
+    case 'champion':  return ok ? ev('LIFTED THE CUP', 'הרמת את הגביע') : ev("DIDN'T WIN IT", 'לא זכית בגביע');
+    case 'decades': { const cov = new Set(Object.values(S.xi).map(p => decadeOf(p.y))).size; return ok ? ev('ALL 9 DECADES COVERED', 'כל 9 העשורים כוסו') : ev(cov + ' OF 9 DECADES', cov + ' מתוך 9 עשורים'); }
+    case 'anyNation': { const hit = Object.values(S.xi).find(p => w.nations.includes(p.c)); return hit ? ev('FIELDED ' + hit.c.toUpperCase(), 'שיבצת את ' + hit.c) : ev('NO NATION PLAYING TODAY', 'אף נבחרת ששיחקה היום'); }
+    case 'hatTrick':  return ok ? ev((name || 'A PLAYER') + ' SCORED A HAT-TRICK', (name || 'שחקן') + ' עשה שלושער') : ev('NO HAT-TRICK', 'לא היה שלושער');
+    case 'strikers':  return ok ? ev('BOTH STRIKERS DELIVERED', 'שני החלוצים סיפקו') : ev('STRIKERS FELL SHORT', 'החלוצים לא סיפקו');
+    default: return '';
+  }
+}
+
 // ── S6 back cover ─────────────────────────────────────────────────────────────
 function showResult() {
   const J = S.journey;
@@ -1062,6 +1104,19 @@ function showResult() {
         + (S.challengeOk === true ? ' ✓' : S.challengeOk === false ? ' ✗' : '')
         + (S.challenge.tries && S.tryNo ? ' · ' + t('try_n', S.tryNo) : ''))
       : t('s6_kicker');
+  // achievement line — proof of HOW you met the rule + the day's mark (best-of-the-day)
+  const proofEl = $('verdict-proof');
+  if (S.challenge) {
+    const proof = challengeProof(S.challenge, J), mark = challengeMark(S.challenge, J);
+    const tick = S.challengeOk === true ? '✓ ' : S.challengeOk === false ? '✗ ' : '';
+    const parts = [];
+    if (proof) parts.push(tick + proof);
+    else if (S.challengeOk === true) parts.push('✓');
+    if (mark) parts.push(mark);
+    proofEl.textContent = parts.join('   ·   ');
+    proofEl.hidden = parts.length === 0;
+    proofEl.classList.toggle('miss', S.challengeOk === false);
+  } else proofEl.hidden = true;
   show('s6');
   const s6 = $('s6');
   s6.classList.toggle('champion', J.finalStage === 'CHAMPION');
@@ -1269,7 +1324,7 @@ function wire() {
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
-    const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0, sat: _challengeSatisfiers(S.challenge, S.journey) } : null;
+    const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0, proof: challengeProof(S.challenge, S.journey), mark: challengeMark(S.challenge, S.journey) } : null;
     shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily).catch(console.error);
   });
 }
@@ -1293,6 +1348,18 @@ window.__gxiEvalWin = (c, J, xi) => {
   const r = evalChallenge(c, J);
   S.xi = keep;
   return r;
+};
+// test hook: proof + mark strings (both languages) for a synthetic challenge/journey/XI
+window.__gxiProofMark = (c, J, xi, ok, tryNo) => {
+  const keep = { xi: S.xi, ch: S.challenge, ok: S.challengeOk, tn: S.tryNo };
+  if (xi) S.xi = xi;
+  S.challenge = c; S.challengeOk = ok; S.tryNo = tryNo || 0;
+  const cur = getLang();
+  setLang('en'); const en = { proof: challengeProof(c, J), mark: challengeMark(c, J) };
+  setLang('he'); const he = { proof: challengeProof(c, J), mark: challengeMark(c, J) };
+  setLang(cur);
+  Object.assign(S, { xi: keep.xi, challenge: keep.ch, challengeOk: keep.ok, tryNo: keep.tn });
+  return { en, he };
 };
 
 loadData()

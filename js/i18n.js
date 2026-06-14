@@ -130,6 +130,14 @@ const D = {
   daily_oneshot: { en: 'ONE SHOT — ALREADY PLAYED', he: 'ניסיון אחד, וכבר שיחקת' },
   try_n:      { en: (n) => 'ATTEMPT ' + n, he: (n) => 'ניסיון ' + n },
 
+  // daily achievement "mark" — the metric that defines best-of-the-day
+  rs_champ:   { en: 'CHAMPION', he: 'אלוף' },
+  mk_far:     { en: (st, gd) => 'YOUR MARK: ' + st + ' (' + gd + ')',      he: (st, gd) => 'ההישג שלך: ' + st + ' (' + gd + ')' },
+  mk_lowavg:  { en: (a, st) => 'YOUR MARK: AVG ' + a + ' → ' + st,         he: (a, st) => 'ההישג שלך: ממוצע ' + a + ' → ' + st },
+  mk_clean:   { en: (g, st) => 'YOUR MARK: CONCEDED ' + g + ' · ' + st,     he: (g, st) => 'ההישג שלך: ' + g + ' ספיגות · ' + st },
+  mk_goals:   { en: (g, st) => 'YOUR MARK: ' + g + ' GOALS · ' + st,        he: (g, st) => 'ההישג שלך: ' + g + ' שערים · ' + st },
+  mk_tries:   { en: (n, st) => 'YOUR MARK: ' + st + (n === 1 ? ' IN 1 TRY' : ' IN ' + n + ' TRIES'), he: (n, st) => 'ההישג שלך: ' + st + ' ב-' + n + (n === 1 ? ' ניסיון' : ' ניסיונות') },
+
   // group invite
   grp_kick:   { en: 'THE DRESSING ROOM', he: 'חדר ההלבשה' },
   grp_main:   { en: 'WON? CRASHED OUT? THE GROUP WANTS PROOF.', he: 'ניצחת? הודחת? בקבוצה רוצים לראות הוכחות.' },
