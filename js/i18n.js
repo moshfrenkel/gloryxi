@@ -13,6 +13,7 @@ const D = {
   howto_link: { en: 'HOW TO PLAY', he: 'איך משחקים?' },
   footer:     { en: 'Not affiliated with FIFA · Data: Fjelstul World Cup Database (CC-BY-SA 4.0) · No player photos<br>No cookies · anonymous play counts only (visits &amp; games) · no personal data',
                 he: 'ללא קשר לפיפ"א · נתונים: Fjelstul World Cup Database (CC-BY-SA 4.0) · בלי תמונות שחקנים<br>בלי עוגיות · נאספות ספירות משחק אנונימיות בלבד · בלי מידע אישי' },
+  a11y_link:  { en: 'Accessibility statement', he: 'הצהרת נגישות' },
 
   // How-to overlay
   ht_title:   { en: 'HOW TO PLAY', he: 'איך משחקים' },
@@ -159,6 +160,7 @@ export function setLang(l) {
   lang = l === 'he' ? 'he' : 'en';
   try { localStorage.setItem(LS_KEY, lang); } catch (_) { /* ok */ }
   document.documentElement.setAttribute('data-lang', lang);
+  document.documentElement.lang = lang; // a11y: screen readers announce in the right language
   applyStatic();
 }
 
@@ -177,3 +179,4 @@ export function applyStatic() {
 }
 
 document.documentElement.setAttribute('data-lang', lang);
+document.documentElement.lang = lang;

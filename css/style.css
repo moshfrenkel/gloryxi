@@ -1169,3 +1169,19 @@ html[data-lang="he"] .daily-t { font-family: system-ui, 'Segoe UI', sans-serif; 
   *, *::before, *::after { animation: none !important; transition: none !important; }
   :root { --px: 0 !important; --py: 0 !important; }
 }
+
+/* ── accessibility: visible keyboard focus (WCAG 2.4.7) ─────────────────── */
+:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+a:focus-visible, button:focus-visible, input:focus-visible,
+[role="button"]:focus-visible, [tabindex]:focus-visible,
+.player-row:focus-visible, .slot-option:focus-visible, .legend-row:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+#team-name:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+/* footer accessibility-statement link */
+.footer-link { display: inline-block; margin-top: 6px; color: var(--hot); font-size: 9px; letter-spacing: 0.08em; text-decoration: underline; }
