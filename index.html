@@ -16,6 +16,8 @@
   <!-- self-hosted fonts — zero third-party requests -->
   <link rel="stylesheet" href="./css/fonts.css">
   <link rel="stylesheet" href="./css/style.css">
+  <!-- daily-leaderboard backend config (public anon key; empty = leaderboard off) -->
+  <script src="./js/config.js"></script>
   <!-- anonymous usage stats (Umami) — no cookies, no personal data; see footer note -->
   <script>
     /* owner opt-out: open the site once with ?boss on any device and that
@@ -135,9 +137,27 @@
     <div class="daily-big" data-i18n="daily_big">ONE A DAY.<br>UNTIL THE FINAL.</div>
     <div class="t-cap daily-sub" data-i18n="daily_sub">39 DAYS · ONLY TODAY IS OPEN · PROOF GOES TO THE GROUP</div>
     <a id="daily-group-link" href="https://chat.whatsapp.com/CcAQQbH9AVi9VCGCJer4JV" target="_blank" rel="noopener" data-i18n="grp_board">THE GROUP &#8594;</a>
+    <button id="daily-board-link" class="lb-open-link" hidden data-i18n="lb_today">TODAY'S BOARD &#8594;</button>
   </div>
   <div id="daily-list" role="list" aria-label="Daily challenges"></div>
   <button id="daily-close" class="board-strip board-strip-close">
+    <span class="t-cap" data-i18n="daily_back">BACK</span>
+    <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 1 L7 8 L13 1" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
+  </button>
+</div>
+
+<!-- S-BOARD — live daily leaderboard -->
+<div id="s-board" class="screen">
+  <div class="status-strip">
+    <div class="t-cap" data-i18n="lb_board_title">DAILY BOARD</div>
+  </div>
+  <div class="board-head">
+    <h2 id="board-title" class="board-title"></h2>
+    <p id="board-sub" class="board-sub t-cap"></p>
+  </div>
+  <div id="board-state" class="board-state" role="status"></div>
+  <ol id="board-list" class="board-list" aria-label="Daily leaderboard"></ol>
+  <button id="board-back" class="board-strip board-strip-close">
     <span class="t-cap" data-i18n="daily_back">BACK</span>
     <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 1 L7 8 L13 1" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
   </button>
@@ -292,6 +312,18 @@
       <rect x="97" y="450" width="181" height="58" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
     </svg>
     <div id="result-slots"></div>
+  </div>
+  <div id="lb-row" class="lb-row" hidden>
+    <div id="lb-sent" class="lb-sent" hidden></div>
+    <button id="lb-view" class="lb-open-link" hidden data-i18n="lb_view">SEE THE DAILY BOARD &#8594;</button>
+    <div id="lb-setnick" class="lb-setnick" hidden>
+      <label for="lb-nick" id="lb-nick-label" class="lb-nick-label" data-i18n="lb_label">YOUR NAME ON THE DAILY BOARD</label>
+      <div class="lb-nick-line">
+        <input id="lb-nick" class="lb-nick" type="text" maxlength="20" autocomplete="off" spellcheck="false">
+        <button id="lb-save" class="slab slab-line" data-i18n="lb_save">SEND TO BOARD</button>
+      </div>
+      <p id="lb-note" class="lb-note" data-i18n="lb_note">A nickname + your result only, for the daily board. Pick a name that doesn't identify you. No tracking.</p>
+    </div>
   </div>
   <div class="action-row">
     <button id="btn-share" class="slab slab-hot" data-i18n="share">SHARE</button>

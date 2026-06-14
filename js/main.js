@@ -8,6 +8,7 @@ import { simulateTournament, computeTeamScores, computeTeamElo } from './sim.js'
 import { shareResult } from './share.js';
 import { t, getLang, setLang, applyStatic } from './i18n.js';
 import { kitFor, jerseySVG } from './kits.js';
+import { lbConfigured, getNick, setNick, submitDailyScore, fetchBoard } from './leaderboard.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -1038,22 +1039,65 @@ function evalChallenge(c, J) {
   return ok;
 }
 
-// ── the day's "mark": the achievement metric that defines best-of-the-day ──────
-// most days rank by how far you went; a few thematic days rank differently.
+// ── the day's achievement dimension — the board ranks on the daily CHALLENGE ──
+// (e.g. day 4 = defender goals), not a generic best run. Order everywhere:
+// met-the-rule first, then this magnitude, then furthest, then goal-diff.
 const MARK_METRIC = { 6: 'cleanest', 9: 'lowAvg', 13: 'lowAvg', 19: 'mostGoals', 24: 'fewestTries', 30: 'mostGoals', 31: 'cleanest', 34: 'cleanest' };
 const markMetric = (c) => (c && MARK_METRIC[c.d]) || 'furthest';
 const shortStage = (s) => s === 'CHAMPION' ? t('rs_champ') : s === 'GROUP_EXIT' ? t('st_GROUP') : t('st_' + s);
 
+function _posGoals(J, pos) { let n = 0; for (const m of J.journey) for (const s of (m.scorers || [])) if (s.p === pos) n++; return n; }
+
+// the challenge objective drives the dimension; filter/social days fall back to the mark metric
+function dayDimension(c) {
+  const w = c && c.win && c.win[0];
+  if (w) {
+    if (w.k === 'scorerPos') return 'posGoals';
+    if (w.k === 'strikers')  return 'strikerGoals';
+    if (w.k === 'topScorer') return 'topGoals';
+    if (w.k === 'hatTrick')  return 'hatTrick';
+    if (w.k === 'maxGA')     return 'cleanest';
+  }
+  return markMetric(c);
+}
+
+// higher = better; stored as `sv`, used as the ranking magnitude right after "met the rule"
+function challengeValue(c, J) {
+  const R = J.record, g = _goalsBySlot(J);
+  switch (dayDimension(c)) {
+    case 'posGoals':     return _posGoals(J, c.win[0].pos);
+    case 'strikerGoals': return (g.ST1 || 0) + (g.ST2 || 0);
+    case 'topGoals':     return Math.max(0, 0, ...Object.values(g));
+    case 'hatTrick':     { let mx = 0; for (const m of J.journey) { const per = {}; for (const s of (m.scorers || [])) if (s.slot) { per[s.slot] = (per[s.slot] || 0) + 1; if (per[s.slot] > mx) mx = per[s.slot]; } } return mx; }
+    case 'cleanest':     return -R.ga;
+    case 'lowAvg':       return -Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
+    case 'mostGoals':    return R.gf;
+    case 'fewestTries':  return -(S.tryNo || 0);
+    default:             return 0;
+  }
+}
+
+// localized compact display of the day's achievement, from a row-like {sv,ga,avg,gf,tries,gd}
+function dimDetail(dim, r, he) {
+  const sv = r.sv || 0;
+  switch (dim) {
+    case 'posGoals':     return sv + (he ? ' שערי מגן' : ' def goals');
+    case 'strikerGoals': return sv + (he ? ' שערי חלוץ' : ' striker goals');
+    case 'topGoals':     return sv + (he ? ' שערי המלך' : ' top-scorer goals');
+    case 'hatTrick':     return (he ? 'שיא ' : 'best ') + sv + (he ? ' במשחק' : '/match');
+    case 'cleanest':     return r.ga + (he ? ' ספיגות' : ' conceded');
+    case 'lowAvg':       return (he ? 'ממוצע ' : 'avg ') + r.avg;
+    case 'mostGoals':    return r.gf + (he ? ' שערים' : ' goals');
+    case 'fewestTries':  return (r.tries || '?') + (he ? ' ניסיונות' : ' tries');
+    default:             return '(' + (r.gd >= 0 ? '+' : '') + r.gd + ')';
+  }
+}
+
 function challengeMark(c, J) {
   if (!c || !J) return '';
-  const st = shortStage(J.finalStage), R = J.record;
-  switch (markMetric(c)) {
-    case 'lowAvg':      return t('mk_lowavg', Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11), st);
-    case 'cleanest':    return t('mk_clean', R.ga, st);
-    case 'mostGoals':   return t('mk_goals', R.gf, st);
-    case 'fewestTries': return t('mk_tries', S.tryNo || 1, st);
-    default: { const gd = R.gf - R.ga; return t('mk_far', st, (gd >= 0 ? '+' : '') + gd); }
-  }
+  const he = getLang() === 'he', R = J.record;
+  const r = { sv: challengeValue(c, J), ga: R.ga, avg: Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11), gf: R.gf, tries: S.tryNo || 0, gd: R.gf - R.ga };
+  return (he ? 'ההישג שלך: ' : 'YOUR MARK: ') + dimDetail(dayDimension(c), r, he) + ' · ' + shortStage(J.finalStage);
 }
 
 // human-readable evidence of HOW you met (or missed) a win-condition day — '' for filter/social days
@@ -1078,6 +1122,77 @@ function challengeProof(c, J) {
     case 'strikers':  return ok ? ev('BOTH STRIKERS DELIVERED', 'שני החלוצים סיפקו') : ev('STRIKERS FELL SHORT', 'החלוצים לא סיפקו');
     default: return '';
   }
+}
+
+// ── daily leaderboard: build the submit row + the nickname / sent UI ──────────
+function buildScoreRow(c, J) {
+  const R = J.record;
+  const avg = Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
+  return {
+    day: c.d, game_date: c.date, nick: getNick(),
+    team: (S.teamName || '').slice(0, 30),
+    stage: J.finalStage, stage_rank: STAGE_RANK[J.finalStage] ?? 0,
+    ok: S.challengeOk, metric: markMetric(c), sv: challengeValue(c, J),
+    avg, gd: R.gf - R.ga, gf: R.gf, ga: R.ga, tries: S.tryNo || 0,
+  };
+}
+
+function markSent(nick) {
+  $('lb-sent').textContent = t('lb_sent', nick);
+  $('lb-sent').hidden = false; $('lb-setnick').hidden = true;
+}
+
+function renderLeaderboardRow(c, J) {
+  const row = $('lb-row');
+  if (!row) return;
+  if (!c || !lbConfigured()) { row.hidden = true; return; }   // feature off until backend configured
+  row.hidden = false;
+  $('lb-view').hidden = false;
+  const nick = getNick();
+  if (nick) { submitDailyScore(buildScoreRow(c, J)); markSent(nick); }
+  else { $('lb-sent').hidden = true; $('lb-setnick').hidden = false; $('lb-nick').value = ''; }
+}
+
+// ── in-app live leaderboard ───────────────────────────────────────────────────
+// ranking order = met the daily rule, then the challenge magnitude (sv), then
+// furthest, then goal-diff. So the board is the DAILY-CHALLENGE board, not a generic run.
+const okRank = (r) => r.ok === true ? 2 : r.ok === false ? 0 : 1;
+const lbCmp = (a, b) => okRank(b) - okRank(a) || (b.sv || 0) - (a.sv || 0) || b.stage_rank - a.stage_rank || b.gd - a.gd;
+function rankBoard(rows) {
+  const best = new Map();
+  for (const r of rows) { const k = (r.nick || '').trim().toLowerCase(); if (!k) continue; if (!best.has(k) || lbCmp(r, best.get(k)) < 0) best.set(k, r); }
+  return { ranked: [...best.values()].sort(lbCmp), count: best.size };
+}
+async function openBoard(c, ret) {
+  if (!c || !lbConfigured()) return;
+  S.boardReturn = ret || 's1';
+  $('board-title').textContent = 'DAILY #' + c.d + ' · ' + chTitle(c);
+  $('board-sub').textContent = c.date;
+  $('board-list').innerHTML = '';
+  const st = $('board-state'); st.hidden = false; st.textContent = t('lb_loading');
+  show('s-board');
+  const rows = await fetchBoard(c.date);
+  if (rows === null) { st.textContent = t('lb_error'); return; }
+  const { ranked, count } = rankBoard(rows);
+  if (!ranked.length) { st.textContent = t('lb_empty'); return; }
+  st.hidden = true;
+  const dim = dayDimension(c), he = getLang() === 'he';
+  const me = getNick().trim().toLowerCase();
+  const list = $('board-list');
+  ranked.forEach((r, i) => {
+    const mine = me && (r.nick || '').trim().toLowerCase() === me;
+    const li = document.createElement('li');
+    li.className = 'board-li' + (mine ? ' me' : '');
+    const rank = document.createElement('span'); rank.className = 'b-rank'; rank.textContent = i + 1;
+    const nick = document.createElement('span'); nick.className = 'b-nick'; nick.textContent = r.nick;
+    if (mine) { const you = document.createElement('span'); you.className = 'b-you t-cap'; you.textContent = ' ' + t('lb_you'); nick.appendChild(you); }
+    const det = document.createElement('span'); det.className = 'b-det';
+    det.textContent = shortStage(r.stage) + ' · ' + dimDetail(dim, r, he) + (r.ok === true ? ' ✓' : r.ok === false ? ' ✗' : '');
+    li.append(rank, nick, det);
+    list.appendChild(li);
+  });
+  const foot = document.createElement('li'); foot.className = 'board-foot t-cap'; foot.textContent = t('lb_players', count);
+  list.appendChild(foot);
 }
 
 // ── S6 back cover ─────────────────────────────────────────────────────────────
@@ -1117,6 +1232,7 @@ function showResult() {
     proofEl.hidden = parts.length === 0;
     proofEl.classList.toggle('miss', S.challengeOk === false);
   } else proofEl.hidden = true;
+  renderLeaderboardRow(S.challenge, J);
   show('s6');
   const s6 = $('s6');
   s6.classList.toggle('champion', J.finalStage === 'CHAMPION');
@@ -1227,6 +1343,7 @@ function updateDailyBtn() {
 function showDaily() {
   const list = $('daily-list');
   list.innerHTML = '';
+  $('daily-board-link').hidden = !(lbConfigured() && todayChallenge());
   const iso = _todayIso();
   const done = dailyDone();
   let todayRow = null;
@@ -1322,6 +1439,16 @@ function wire() {
   $('group-cta').addEventListener('click', () => track('group_join', { from: 'result' }));
   $('daily-group-link').addEventListener('click', () => track('group_join', { from: 'board' }));
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
+  $('lb-save').addEventListener('click', () => {
+    const v = setNick($('lb-nick').value);
+    if (!v) { $('lb-nick').focus(); return; }
+    if (S.challenge && S.journey) { submitDailyScore(buildScoreRow(S.challenge, S.journey)); track('lb_submit', { day: S.challenge.d }); }
+    markSent(v);
+  });
+  $('lb-nick').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('lb-save').click(); } });
+  $('lb-view').addEventListener('click', () => openBoard(S.challenge, 's6'));
+  $('daily-board-link').addEventListener('click', () => openBoard(todayChallenge(), 's-daily'));
+  $('board-back').addEventListener('click', () => show(S.boardReturn || 's1'));
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
     const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0, proof: challengeProof(S.challenge, S.journey), mark: challengeMark(S.challenge, S.journey) } : null;

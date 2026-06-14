@@ -11,9 +11,24 @@ const D = {
   s1tag:      { en: 'BUILD YOUR ALL-TIME XI.<br>SURVIVE THE TOURNAMENT.', he: 'מרכיבים נבחרת־על מכל הזמנים.<br>שורדים את הטורניר.' },
   kickoff:    { en: 'KICK OFF', he: 'שריקת פתיחה' },
   howto_link: { en: 'HOW TO PLAY', he: 'איך משחקים?' },
-  footer:     { en: 'Not affiliated with FIFA · Data: Fjelstul World Cup Database (CC-BY-SA 4.0) · No player photos<br>No cookies · anonymous play counts only (visits &amp; games) · no personal data',
-                he: 'ללא קשר לפיפ"א · נתונים: Fjelstul World Cup Database (CC-BY-SA 4.0) · בלי תמונות שחקנים<br>בלי עוגיות · נאספות ספירות משחק אנונימיות בלבד · בלי מידע אישי' },
+  footer:     { en: 'Not affiliated with FIFA · Data: Fjelstul World Cup Database (CC-BY-SA 4.0) · No player photos<br>No cookies · anonymous counts; opt-in nickname + result on the daily board (EU server, deleted after the tournament) · no identifying personal data',
+                he: 'ללא קשר לפיפ"א · נתונים: Fjelstul World Cup Database (CC-BY-SA 4.0) · בלי תמונות שחקנים<br>בלי עוגיות · ספירות אנונימיות, ובבחירתך כינוי + תוצאה לטבלה היומית (שרת באירופה, נמחק בסוף הטורניר) · בלי מידע אישי מזהה' },
   a11y_link:  { en: 'Accessibility statement', he: 'הצהרת נגישות' },
+
+  // daily leaderboard
+  lb_label:   { en: 'YOUR NAME ON THE DAILY BOARD', he: 'הכינוי שלך לטבלה היומית' },
+  lb_save:    { en: 'SEND TO BOARD', he: 'שלח לטבלה' },
+  lb_note:    { en: "Saved only if you choose to enter: a nickname + your result, shown on the daily board to all players (EU server). Pick a name that doesn't identify you. No tracking. Deleted when the tournament ends.",
+                he: 'נשמרים רק אם תבחר להיכנס: כינוי + התוצאה, שמוצגים בטבלה היומית לכל השחקנים (שרת באירופה). בחר כינוי שלא מזהה אותך. בלי מעקב. נמחק בסוף הטורניר.' },
+  lb_sent:    { en: (n) => 'ON THE DAILY BOARD AS ' + n, he: (n) => 'נשלחת לטבלה היומית בתור ' + n },
+  lb_today:   { en: "TODAY'S BOARD &#8594;", he: 'הטבלה של היום &#8592;' },
+  lb_view:    { en: 'SEE THE DAILY BOARD &#8594;', he: 'לטבלה היומית &#8592;' },
+  lb_board_title: { en: 'DAILY BOARD', he: 'הטבלה היומית' },
+  lb_loading: { en: 'Loading the board…', he: 'טוען את הטבלה…' },
+  lb_empty:   { en: 'No scores yet today. Be the first on the board.', he: 'עוד אין תוצאות היום. היה הראשון על הלוח.' },
+  lb_error:   { en: 'Board unavailable right now. Try again later.', he: 'הטבלה לא זמינה כרגע. נסה שוב מאוחר יותר.' },
+  lb_you:     { en: 'YOU', he: 'אתה' },
+  lb_players: { en: (n) => n + (n === 1 ? ' player today' : ' players today'), he: (n) => n + ' שחקנים שיחקו היום' },
 
   // How-to overlay
   ht_title:   { en: 'HOW TO PLAY', he: 'איך משחקים' },
