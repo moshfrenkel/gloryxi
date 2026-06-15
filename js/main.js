@@ -5,7 +5,7 @@
    ratings always visible, one player per country, 1 team-skip + 1 year-skip. */
 
 import { simulateTournament, computeTeamScores, computeTeamElo } from './sim.js';
-import { shareResult } from './share.js';
+import { shareResult, shareStory } from './share.js';
 import { t, getLang, setLang, applyStatic } from './i18n.js';
 import { kitFor, jerseySVG } from './kits.js';
 import { lbConfigured, getNick, setNick, submitDailyScore, fetchBoard } from './leaderboard.js';
@@ -1449,8 +1449,39 @@ function openStory(a) {
   const ul = $('story-src-list'); ul.innerHTML = '';
   (a.sources || []).forEach(s => { const li = document.createElement('li'); li.textContent = s; ul.appendChild(li); });
   $('story-back-label').textContent = t('story_back');
+  $('story-share-label').textContent = t('story_share');
+  $('story-share-cta-label').textContent = t('story_share_cta');
   if (sc) sc.scrollTop = 0;
   show('s-story');
+}
+
+// share the article that's open — native sheet, clipboard fallback with brief "copied" feedback
+function doShareStory(btnId, normalLabel) {
+  if (!curArticle) return;
+  const btn = $(btnId);
+  shareStory(curArticle, getLang()).then(res => {
+    track('story_share', { date: curArticle.date, result: res });
+    if (res === 'copied' && btn) {
+      const label = btn.querySelector('span');
+      const prev = label ? label.textContent : '';
+      if (label) label.textContent = t('story_copied');
+      btn.classList.add('copied');
+      setTimeout(() => { if (label) label.textContent = t(normalLabel); btn.classList.remove('copied'); }, 1800);
+    }
+  }).catch(console.error);
+}
+
+// deep link: a shared #story=<slug> link opens that article straight away
+function openStoryFromHash() {
+  const m = (location.hash || '').match(/^#story=(.+)$/);
+  if (!m) return false;
+  const slug = decodeURIComponent(m[1]);
+  const a = (S.articles || []).find(x => x.slug === slug);
+  if (!a) return false;
+  curArticle = a;
+  openStory(a);
+  track('story_open', { date: a.date, via: 'link' });
+  return true;
 }
 
 // ── today's live fixtures card (home) ─────────────────────────────────────────
@@ -1511,6 +1542,9 @@ function wire() {
   $('story-btn').addEventListener('click', () => { openStory(curArticle); track('story_open', { date: curArticle ? curArticle.date : '' }); });
   $('story-back').addEventListener('click', () => show('s1'));
   $('story-back-top').addEventListener('click', () => show('s1'));
+  $('story-share').addEventListener('click', () => doShareStory('story-share', 'story_share'));
+  $('story-share-cta').addEventListener('click', () => doShareStory('story-share-cta', 'story_share_cta'));
+  window.addEventListener('hashchange', openStoryFromHash);
   $('howto-link').addEventListener('click', () => showHowto(false));
   $('ht-next').addEventListener('click', htNext);
   $('btn-lang').addEventListener('click', () => {
@@ -1591,7 +1625,7 @@ window.__gxiProofMark = (c, J, xi, ok, tryNo) => {
 };
 
 loadData()
-  .then(() => { wire(); updateLangButton(); updateDailyBtn(); updateStoryBtn(); show('s1'); })
+  .then(() => { wire(); updateLangButton(); updateDailyBtn(); updateStoryBtn(); if (!openStoryFromHash()) show('s1'); })
   .catch(err => {
     console.error('load failed', err);
     document.querySelector('#loading .load-cap').textContent = t('load_fail');

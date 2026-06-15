@@ -98,6 +98,39 @@ function drawJersey(x, cx, cy, w, country) {
   x.closePath(); x.fill();
 }
 
+const SITE = 'https://moshfrenkel.github.io/gloryxi/';
+
+/* Share one of Dante's stories — native share sheet (WhatsApp / social),
+   clipboard fallback when the device has no share sheet. The link deep-links
+   straight back to this article via the #story=<slug> hash.
+   Returns 'shared' | 'copied' | 'failed' so the UI can give feedback. */
+export async function shareStory(a, lang) {
+  const he = lang === 'he';
+  const title = he ? a.t_he : a.t_en;
+  const dek = he ? a.dek_he : a.dek_en;
+  const by = a.by || 'Dante Olivera';
+  const url = SITE + '#story=' + encodeURIComponent(a.slug || '');
+  const credit = (he ? 'מאת ' : 'By ') + by + ' · GloryXI';
+  const text = title + '\n' + (dek ? dek + '\n' : '') + credit;
+
+  if (navigator.share) {
+    try {
+      // url passed separately so WhatsApp/social render a single clean link preview
+      await navigator.share({ title: 'GloryXI · ' + title, text, url });
+      return 'shared';
+    } catch (e) {
+      if (e && e.name === 'AbortError') return 'shared'; // user closed the sheet — not a failure
+      /* no share sheet — fall through to clipboard */
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(text + '\n' + url);
+    return 'copied';
+  } catch (e) {
+    return 'failed';
+  }
+}
+
 export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, teamName, daily) {
   teamName = (teamName || 'YOUR XI').toUpperCase();
   await loadAnton();
