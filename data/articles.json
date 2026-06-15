@@ -11,6 +11,8 @@
    "t_en": "The Night Varela Sat Down With the Losers",
    "dek_he": "סיפור על קפטן שעצר מדינה שלמה באמצע מסיבה, ועל מה שעשה אחר כך, כשכולם כבר בכו.",
    "dek_en": "The story of a captain who stopped a whole nation in mid-party, and what he did afterward, once everyone was crying.",
+   "hook_he": "מי השתיק 200 אלף אוהדים במאראקנה?",
+   "hook_en": "Who silenced 200,000 fans at the Maracanã?",
    "body_he": [
     "תדמיין לרגע מאתיים אלף בני אדם על יציע אחד. ריו דה ז'ניירו, 16 ביולי 1950, ואצטדיון המאראקנה החדש לגמרי, שנבנה במיוחד בשביל הרגע הזה, מתפקע. כל העיר שם, וכל מי שלא, צמוד לרדיו. כולם באו לראות בדיוק את אותו הדבר: את ברזיל מוכתרת סוף סוף לאלופת העולם. והם היו צריכים כל כך מעט בשביל זה.",
     "כי המונדיאל של 1950, בניגוד למה שאנחנו מכירים היום, לא הוכרע במשחק גמר דרמטי אחד. הוא הוכרע בבית מסכם של ארבע נבחרות, וברזיל הגיעה למשחק האחרון שלה, מול אורוגוואי, עם יתרון כל כך גדול שאפילו תיקו היה מספיק לה כדי להרים את הגביע. ברזיל לא הייתה חייבת לנצח, היא הייתה צריכה רק לא להפסיד.",
@@ -47,6 +49,51 @@
    ]
   },
   {
+   "date": "2026-06-15",
+   "slug": "capeverde-diaspora",
+   "by": "Dante Olivera",
+   "fixture": "Spain - Cape Verde",
+   "hero": "./art/capeverde-diaspora.png",
+   "hook_he": "איך מדינה של חצי מיליון עצרה את אלופת אירופה?",
+   "hook_en": "How did a nation of half a million hold the champions of Europe?",
+   "t_he": "הנבחרת שנולדה הרחק מהבית, וחזרה",
+   "t_en": "The Team Born Far From Home, and Came Back",
+   "dek_he": "עשר איים קטנים באוקיינוס, חצי מיליון נפש, ונבחרת שרוב שחקניה נולדו ביבשת אחרת. סיפור על געגוע, ועל מי שבאמת עומד מאחורי השער הזה.",
+   "dek_en": "Ten small islands in the ocean, half a million souls, and a team whose players were mostly born on another continent. A story about longing, and about who really stands behind that goal.",
+   "body_he": [
+    "יש מילה אחת בכּריוֹלוּ, השפה של כף ורדה, שאי אפשר לתרגם בלי לאבד אותה. סוֹדאד. זה לא בדיוק געגוע ולא בדיוק עצב, זה הכאב המתוק של מי שאוהב מקום מרחוק. סזריה אבורה, הזמרת היחפה שהביאה את האיים האלה לאוזני העולם, שרה את המילה הזאת כל חייה. תחשוב על זה רגע. מדינה שלמה שהמנון הרגש שלה הוא הגעגוע למקום שעזבת.",
+    "כי בכף ורדה עוזבים. כבר יותר ממאה שנה, מאז הבצורות והרעב של המאה התשע עשרה, האנשים יורדים לנמל ומפליגים. לפורטוגל, להולנד, לצרפת, לחופי ניו אינגלנד שבאמריקה. עד היום, מי שחי על האיים הוא מיעוט. הקהילה הפזורה בעולם, על פי סקר ממשלתי מ-2025, מגיעה עם הצאצאים לכמיליון וחצי. על האיים עצמם חיים פחות מחצי מיליון. תקרא את זה שוב. יש יותר בני כף ורדה מחוץ לבית מאשר בבית.",
+    "עכשיו תיקח את הסיפור הזה ותלביש אותו על נבחרת כדורגל. הסגל שיצא לגביע העולם הראשון בתולדות המדינה הזאת בנוי בדיוק כמו העם. רוב השחקנים לא נולדו על האיים. שמונה מהם נולדו בארצות הברית, באירלנד, בצרפת ובפורטוגל. שישה באו מהעיר אחת, רוטרדם שבהולנד. בקבוצה הזאת יש יותר ילדים שנולדו בחוץ לארץ מאשר ילדים שנולדו על אדמת המולדת.",
+    "הקפטן, ראיין מנדס, בן שלושים ושש, הוא מלך השערים והשיאן בהופעות של המדינה, אולי הטוב בכל הזמנים שלה. לצידו עומד סטופירה, מגן ותיק שהאוהדים פשוט אוהבים, ושוער ותיק בשם ווזיניה בן ארבעים. ואת כל החבורה הזאת אסף איש אחד, פדרו לייטאו בריטו, שכולם מכירים בכינוי בּוּבּיסטה. הוא בעצמו לבש את החולצה הזאת, עשרים ושמונה פעמים, חלקן כקפטן. הוא לקח את הנבחרת ב-2020, הוביל אותה לרבע גמר באליפות אפריקה, ובאוקטובר האחרון עשה את הבלתי יאומן. וכמה שבועות אחר כך, בנובמבר, הוא נבחר למאמן השנה של אפריקה, וזה היה רק העיטור.",
+    "כי העיקר קרה ב-13 באוקטובר 2025, על האיים, מול אסוואטיני. ניצחון 0:3, שערים של דאילון ליברמנטו, ווילי סמדו, ובסוף גם של סטופירה הוותיק. בשריקה האחרונה כף ורדה סיימה ראשונה בבית שלה, לפני קמרון על כל הכוכבים שלה, והבטיחה כרטיס למונדיאל. אחת משלוש המדינות הקטנות באוכלוסייתן שעשו את זה אי פעם, לצד איסלנד וקוראסאו.",
+    "ופה מגיע החלק שמעטים עוצרים עליו. נבחרת שרוב ילדיה גדלו רחוק מהבית, מי באמת היציע שלה? התשובה נמצאת בערים של אמריקה. לפני המונדיאל שיחקה כף ורדה משחק הכנה בקונטיקט, וכמעט עשרת אלפים בני כף ורדה מילאו את היציע. גארי רודריגס, אחד השחקנים שנולדו בהולנד, אמר עליהם משפט פשוט שמסביר הכול: \"הם השחקן השנים עשר שלנו, ואני חושב שהם יכולים לעשות בשבילנו את ההבדל.\"",
+    "תעצור על זה שנייה. כל אותם דורות שהפליגו מהנמל עם סוֹדאד בלב, כל הסבים והסבתות ששרו את שירי הגעגוע במטבחים של ליסבון ושל רוטרדם ושל בוסטון, הם אלה שעכשיו ממלאים אצטדיונים אמריקאיים בזהב ובכחול. הילדים שנולדו בגלות חזרו ללבוש את חולצת האיים, והגלות עצמה היא זו שצועקת להם מהיציע.",
+    "והנה זה כבר קרה. באטלנטה, מול ספרד אלופת אירופה, עמדה כף ורדה הקטנה ולא נכנעה. עשרים ושבע בעיטות ניחתו על השער שלה, וווזיניה, השוער בן הארבעים, אותו ענק שקט מהסגל, הדף אותן אחת אחרי השנייה, שבע על המטרה, פראן טורס אפילו פגע ברוחב, עד שנשמעה השריקה האחרונה והלוח עדיין הראה אפס אפס. נבחרת שרוב ילדיה נולדו הרחק מהאיים עצרה אחת מנבחרות העל של העולם. ואם הקשבת טוב בין הצעקות, שמעת שם, מתחת לכול, את אותה מילה ישנה שלא מפסיקה לחזור הביתה. סוֹדאד."
+   ],
+   "body_en": [
+    "There is one word in Kriolu, the language of Cape Verde, that you cannot translate without losing it. Sodade. It is not quite longing and not quite sorrow, it is the sweet ache of someone who loves a place from far away. Cesária Évora, the barefoot singer who carried these islands into the ears of the world, sang that word her whole life. Stop on that for a second. A whole country whose national feeling is the yearning for a place you left behind.",
+    "Because in Cape Verde, people leave. For more than a hundred years, since the droughts and famines of the nineteenth century, they have walked down to the port and sailed away. To Portugal, to the Netherlands, to France, to the shores of New England in America. To this day, the people who live on the islands are the minority. The community scattered across the world, according to a 2025 government survey, reaches around one and a half million when you count the descendants. On the islands themselves live fewer than half a million. Read that again. There are more Cape Verdeans outside the home than inside it.",
+    "Now take that story and dress a football team in it. The squad that walked out for the first World Cup in this country's history is built exactly like the people. Most of the players were not born on the islands. Eight of them were born in the United States, Ireland, France and Portugal. Six came from a single city, Rotterdam in the Netherlands. This team has more children born abroad than children born on the soil of the homeland.",
+    "The captain, Ryan Mendes, thirty-six, is the nation's record scorer and most-capped player, perhaps the finest it has ever produced. Beside him stands Stopira, a veteran defender the fans simply adore, and a veteran goalkeeper named Vozinha, forty. And the whole crew was gathered by one man, Pedro Leitão Brito, known to everyone as Bubista. He wore this shirt himself, twenty-eight times, some of them as captain. He took the team in 2020, led it to the quarter-finals of the Africa Cup of Nations, and last October pulled off the unthinkable. And weeks later, in November, he was named African coach of the year, and that was only the medal.",
+    "Because the real thing happened on 13 October 2025, on the islands, against Eswatini. A 3-0 win, goals from Dailon Livramento, Willy Semedo, and at the end old Stopira too. At the final whistle Cape Verde finished top of its group, ahead of Cameroon and all its stars, and booked a ticket to the World Cup. One of the three least-populous nations ever to manage it, alongside Iceland and Curaçao.",
+    "And here comes the part few people stop on. A team whose children mostly grew up far from home, who really are its crowd? The answer is in the cities of America. Before the tournament Cape Verde played a warm-up in Connecticut, and nearly ten thousand Cape Verdeans filled the stands. Garry Rodrigues, one of the players born in the Netherlands, said a simple line about them that explains everything: \"They are our 12th player, and I think they can make a difference for us.\"",
+    "Stop on that for a second. All those generations who sailed from the port with sodade in their hearts, all the grandparents who sang the songs of longing in the kitchens of Lisbon and Rotterdam and Boston, they are the ones now filling American stadiums in gold and blue. The children born in exile came back to wear the shirt of the islands, and the exile itself is what now roars for them from the stands.",
+    "And now it has happened. In Atlanta, against Spain, the champions of Europe, little Cape Verde stood and did not yield. Twenty-seven shots rained down on their goal, and Vozinha, the forty-year-old goalkeeper, that quiet giant from the squad, pushed them away one after another, seven on target, Ferran Torres even striking the crossbar, until the final whistle blew and the board still read nil-nil. A team whose children were mostly born far from the islands had stopped one of the world's great sides. And if you listened well between the shouts, you heard there, beneath it all, that same old word that never stops coming home. Sodade."
+   ],
+   "dyk_he": "באליפות העולם 2026 כף ורדה היא מהמדינות הקטנות באוכלוסייתן שהעפילו אי פעם, השלישית בגודלה אחרי קוראסאו ואיסלנד, עם פחות מחצי מיליון תושבים. וקהילת בני כף ורדה מחוץ למדינה גדולה מזו שחיה על האיים עצמם.",
+   "dyk_en": "At the 2026 World Cup, Cape Verde is among the least-populous nations ever to qualify, the third-smallest behind Curaçao and Iceland, with fewer than half a million residents. And the Cape Verdean community living abroad is larger than the one living on the islands themselves.",
+   "sources": [
+    "Goal.com — World Cup 2026 Ultimate Guide: Cape Verde",
+    "Yahoo Sports — 5 things to know about Cape Verde and its World Cup training in Tampa",
+    "Yahoo Sports — Cape Verde: 2026 World Cup Squad, Fixtures and Schedule",
+    "Soccerway — History written as Cape Verde beat Eswatini to qualify for 2026 World Cup",
+    "Migration Policy Institute — Cape Verde: Towards the End of Emigration?",
+    "ESPN — Spain 0-0 Cape Verde, FIFA World Cup, 15 June 2026 (match report: Atlanta; Vozinha 7 saves, denied Oyarzabal/Laporte/Torres; Ferran Torres hit the crossbar; Spain 27 shots / 7 on target, xG 2.29 vs 0.03)",
+    "FIFA.com — Spain 0-0 Cabo Verde, match report and highlights (15 June 2026)",
+    "Wikipedia / Yahoo Sports — Vozinha (Josimar José Évora Dias, born 3 June 1986, age 40)"
+   ]
+  },
+  {
    "date": "2026-06-16",
    "slug": "senegal-bouba-diop",
    "by": "Dante Olivera",
@@ -57,6 +104,8 @@
    "t_en": "The First Goal, Against the Country That Would Become His Home",
    "dek_he": "סיפור על ענק ששקט שהבקיע את השער הפותח של מונדיאל שלם נגד צרפת, פרש את החולצה על הדשא וריקד סביבה, ואז עשה את צרפת לבית שלו.",
    "dek_en": "The story of a quiet giant who scored the opening goal of an entire World Cup against France, spread his shirt on the grass and danced around it, then made France his home.",
+   "hook_he": "איך קשר הגנתי הבקיע יותר מרונאלדיניו במונדיאל?",
+   "hook_en": "How did a defensive midfielder outscore Ronaldinho at a World Cup?",
    "body_he": [
     "תאר לעצמך שאתה יוצא למשחק הכי גדול בחייך, ובצד השני של המגרש עומדת המדינה שמשלמת לך משכורת. כמעט כל נבחרת סנגל של 2002 התפרנסה מכדורגל בצרפת. הם גדלו על הליגות הצרפתיות, נסעו ברכבות הצרפתיות, דיברו את השפה של מי שפעם שלט בארצם. וב-31 במאי 2002, במשחק הפתיחה של המונדיאל בסיאול, הם עמדו מול צרפת. לא סתם צרפת, אלא אלופת העולם המכהנת, עם זידאן, אנרי, תוראם ודסאי, נבחרת שכמעט אף אחד לא הצליח להבקיע לה במונדיאל הקודם.",
     "על הקווים עמד איש צרפתי. ברונו מטסו, מאמן צרפתי שלקח קבוצה אפריקאית והוביל אותה אל מול ארצו שלו. גם זה חלק מהיופי המוזר של אותו ערב.",
@@ -88,7 +137,7 @@
     "These Football Times — The day Senegal embarrassed France (2019): squad almost all France-based, France defending champions, the colonial backdrop, the goal and shirt celebration",
     "PlanetFootball — Remembering when Senegal stunned France 2002 (Diop 30th minute, Diouf assist, Petit/Barthez muddle, coach Bruno Metsu, Sweden in last 16, Turkey golden goal in QF; Metsu quote)",
     "FIFA.com — Papa Bouba Diop's celebration, Senegal 2002 (shirt laid by the corner flag, teammates dancing around it)",
-    "CBS Sports / 90min / CNN / Al Jazeera (2020) — death tributes, opening goal of the tournament, three goals, nickname 'The Wardrobe', illness reported as Charcot-Marie-Tooth and/or ALS"
+    "CBS Sports / 90min / CNN (2020) — death tributes, opening goal of the tournament, three goals, nickname 'The Wardrobe', illness reported as Charcot-Marie-Tooth and/or ALS"
    ]
   }
  ]

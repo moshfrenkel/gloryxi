@@ -17,6 +17,8 @@ const D = {
 
   // S-STORY — Dante's daily article
   story_today: { en: "TODAY'S STORY", he: 'כתבת היום' },
+  story_kicker_line: { en: 'DANTE OLIVERA · THE DAILY STORY', he: 'דאנטה אוליברה · הסיפור היומי' },
+  stories_arch: { en: "MORE FROM DANTE'S NOTEBOOK", he: 'עוד מהיומן של דאנטה' },
   story_read:  { en: 'READ', he: 'קרא' },
   story_back:  { en: 'BACK', he: 'חזרה' },
   story_share: { en: 'SHARE', he: 'שתף' },

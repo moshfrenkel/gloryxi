@@ -84,9 +84,13 @@
     <span id="daily-btn-label"></span>
   </button>
   <button id="home-board-link" class="home-board-link t-cap" hidden></button>
-  <button id="story-btn" class="slab daily-strip story-strip" hidden>
-    <svg width="17" height="17" viewBox="0 0 18 18" aria-hidden="true"><rect x="2.5" y="2" width="13" height="14" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="5.5" y1="6" x2="12.5" y2="6" stroke="currentColor" stroke-width="1.4"/><line x1="5.5" y1="9" x2="12.5" y2="9" stroke="currentColor" stroke-width="1.4"/><line x1="5.5" y1="12" x2="10" y2="12" stroke="currentColor" stroke-width="1.4"/></svg>
-    <span id="story-btn-label"></span>
+  <button id="story-btn" class="story-card" hidden aria-label="Dante's daily story">
+    <span class="sc-kicker t-cap" id="story-btn-kicker"></span>
+    <span class="sc-hook" id="story-btn-hook"></span>
+    <span class="sc-cta t-cap" id="story-btn-cta">
+      <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 5 H12 M8 1 L12.5 5 L8 9" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="story-btn-cta-label"></span>
+    </span>
   </button>
   <button id="howto-link" class="t-cap" data-i18n="howto_link">HOW TO PLAY</button>
   <div class="footer-note t-cap" data-i18n="footer">Not affiliated with FIFA · Data: Fjelstul World Cup Database (CC-BY-SA 4.0) · No player photos<br>No cookies · anonymous play counts only (visits &amp; games) · no personal data</div>
@@ -390,6 +394,29 @@
     <span class="t-cap" id="story-back-label"></span>
     <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 1 L7 8 L13 1" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
   </button>
+</div>
+
+<!-- S-STORIES — Dante's archive hub: today's featured story + earlier cards -->
+<div id="s-stories" class="screen">
+  <div class="status-strip story-top">
+    <button id="stories-back-top" class="story-back-top" aria-label="Back">
+      <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M7 1 L1 7 L7 13 M1 7 H19" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="t-cap" id="stories-back-top-label"></span>
+    </button>
+    <div class="t-cap" id="stories-kicker"></div>
+  </div>
+  <div class="stories-scroll">
+    <button id="stories-feat" class="stories-feat">
+      <span class="sf-kicker t-cap" id="stories-feat-kicker"></span>
+      <span class="sf-hook" id="stories-feat-hook"></span>
+      <figure class="sf-hero"><img id="stories-feat-img" alt="" draggable="false"></figure>
+      <span class="sf-title" id="stories-feat-title"></span>
+      <span class="sf-dek" id="stories-feat-dek"></span>
+      <span class="sf-cta t-cap" id="stories-feat-cta"></span>
+    </button>
+    <div class="stories-arch-label t-cap" id="stories-arch-label" hidden></div>
+    <div id="stories-list" class="stories-list"></div>
+  </div>
 </div>
 
 <script type="module" src="./js/main.js"></script>

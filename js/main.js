@@ -1543,24 +1543,77 @@ function showDaily() {
 
 // ── Dante's daily story ───────────────────────────────────────────────────────
 let curArticle = null;
-function todayArticle() {
-  const arts = S.articles || [];
-  if (!arts.length) return null;
+// articles published as of today, newest first; same-date ties break by array
+// order (the later entry is the fresher one — e.g. today's match report on top)
+function publishedArticles() {
   const iso = _todayIso();
-  return arts.find(a => a.date === iso)
-    || arts.filter(a => a.date >= iso).sort((x, y) => x.date.localeCompare(y.date))[0]
-    || arts.slice().sort((x, y) => y.date.localeCompare(x.date))[0];
+  return (S.articles || [])
+    .map((a, idx) => ({ a, idx }))
+    .filter(o => o.a.date <= iso)
+    .sort((x, y) => y.a.date.localeCompare(x.a.date) || (y.idx - x.idx))
+    .map(o => o.a);
 }
+function latestArticle() {
+  const pub = publishedArticles();
+  if (pub.length) return pub[0];
+  // before any story's date: fall back to the soonest upcoming one
+  return (S.articles || []).slice().sort((x, y) => x.date.localeCompare(y.date))[0] || null;
+}
+// home button shows the latest story's curiosity hook, not a generic "today's story"
 function updateStoryBtn() {
-  curArticle = todayArticle();
+  const a = latestArticle();
+  curArticle = a;
   const btn = $('story-btn');
   if (!btn) return;
-  if (!curArticle) { btn.hidden = true; return; }
+  if (!a) { btn.hidden = true; return; }
   btn.hidden = false;
-  $('story-btn-label').textContent = t('story_today');
+  const he = getLang() === 'he';
+  $('story-btn-kicker').textContent = t('story_kicker_line');
+  $('story-btn-hook').textContent = (he ? a.hook_he : a.hook_en) || (he ? a.t_he : a.t_en);
+  $('story-btn-cta-label').textContent = t('story_read');
 }
+// the archive hub: today's featured story on top + earlier ones as cards below
+function openStoriesHub() {
+  const pub = publishedArticles();
+  if (!pub.length) { if (curArticle) openStory(curArticle); return; }
+  const he = getLang() === 'he';
+  const sc = document.querySelector('.stories-scroll');
+  if (sc) { sc.dir = he ? 'rtl' : 'ltr'; sc.scrollTop = 0; }
+  $('stories-back-top-label').textContent = t('story_back');
+  $('stories-kicker').textContent = t('story_kicker_line');
+  const feat = pub[0];
+  $('stories-feat-kicker').textContent = t('story_today');
+  $('stories-feat-hook').textContent = (he ? feat.hook_he : feat.hook_en) || (he ? feat.t_he : feat.t_en);
+  const fimg = $('stories-feat-img'); fimg.src = feat.hero; fimg.alt = '';
+  $('stories-feat-title').textContent = he ? feat.t_he : feat.t_en;
+  $('stories-feat-dek').textContent = he ? feat.dek_he : feat.dek_en;
+  $('stories-feat-cta').textContent = t('story_read');
+  $('stories-feat').onclick = () => { openStory(feat); track('story_open', { date: feat.date, via: 'hub' }); };
+  const rest = pub.slice(1);
+  const list = $('stories-list'); list.innerHTML = '';
+  $('stories-arch-label').hidden = rest.length === 0;
+  $('stories-arch-label').textContent = t('stories_arch');
+  for (const a of rest) {
+    const card = document.createElement('button');
+    card.className = 'story-mini';
+    const thumb = document.createElement('img');
+    thumb.src = a.hero; thumb.alt = ''; thumb.className = 'sm-thumb'; thumb.draggable = false;
+    const txt = document.createElement('div'); txt.className = 'sm-txt';
+    const hk = document.createElement('span'); hk.className = 'sm-hook';
+    hk.textContent = (he ? a.hook_he : a.hook_en) || (he ? a.t_he : a.t_en);
+    const ti = document.createElement('span'); ti.className = 'sm-title'; ti.textContent = he ? a.t_he : a.t_en;
+    txt.appendChild(hk); txt.appendChild(ti);
+    card.appendChild(thumb); card.appendChild(txt);
+    card.onclick = () => { openStory(a); track('story_open', { date: a.date, via: 'hub_card' }); };
+    list.appendChild(card);
+  }
+  show('s-stories');
+}
+// back from the reader: to the hub if there's an archive, else home
+function backFromReader() { if (publishedArticles().length) openStoriesHub(); else show('s1'); }
 function openStory(a) {
   if (!a) return;
+  curArticle = a;
   const he = getLang() === 'he';
   const sc = document.querySelector('.story-scroll');
   if (sc) { sc.dir = he ? 'rtl' : 'ltr'; sc.style.textAlign = 'start'; }
@@ -1670,9 +1723,10 @@ function wire() {
   });
   $('daily-btn').addEventListener('click', showDaily);
   $('daily-close').addEventListener('click', () => show('s1'));
-  $('story-btn').addEventListener('click', () => { openStory(curArticle); track('story_open', { date: curArticle ? curArticle.date : '' }); });
-  $('story-back').addEventListener('click', () => show('s1'));
-  $('story-back-top').addEventListener('click', () => show('s1'));
+  $('story-btn').addEventListener('click', () => { openStoriesHub(); track('stories_open'); });
+  $('story-back').addEventListener('click', backFromReader);
+  $('story-back-top').addEventListener('click', backFromReader);
+  $('stories-back-top').addEventListener('click', () => show('s1'));
   $('story-share').addEventListener('click', () => doShareStory('story-share', 'story_share'));
   $('story-share-cta').addEventListener('click', () => doShareStory('story-share-cta', 'story_share_cta'));
   window.addEventListener('hashchange', openStoryFromHash);
@@ -1684,7 +1738,8 @@ function wire() {
     updateLangButton();
     updateDailyBtn();
     updateStoryBtn();
-    if ($('s-story').classList.contains('active') && curArticle) openStory(curArticle);
+    if ($('s-stories').classList.contains('active')) openStoriesHub();
+    else if ($('s-story').classList.contains('active') && curArticle) openStory(curArticle);
     track('lang_switch', { to });
   });
   $('btn-skip-team').addEventListener('click', () => skip('team'));
