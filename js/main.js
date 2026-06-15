@@ -1180,19 +1180,20 @@ function challengeProof(c, J) {
 function buildScoreRow(c, J) {
   const R = J.record;
   const avg = Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
-  // your XI's own top scorer / assister in the tournament (first USER_XI entry)
-  const myScorer = (J.topScorers || []).find(s => s.team === 'USER_XI');
-  const myAssister = (J.topAssisters || []).find(s => s.team === 'USER_XI');
+  // your XI's best-placed scorer/assister in the FULL tournament ranking (name + count + rank)
+  const ms = J.myBestScorer, ma = J.myBestAssister;
   return {
     day: c.d, game_date: c.date, nick: getNick(),
     team: (S.teamName || '').slice(0, 30),
     stage: J.finalStage, stage_rank: STAGE_RANK[J.finalStage] ?? 0,
     ok: S.challengeOk, metric: markMetric(c), sv: challengeValue(c, J),
     avg, gd: R.gf - R.ga, gf: R.gf, ga: R.ga, tries: S.tryNo || 0,
-    top_scorer: myScorer ? String(myScorer.name).slice(0, 40) : null,
-    top_scorer_g: myScorer ? myScorer.goals : null,
-    top_assister: myAssister ? String(myAssister.name).slice(0, 40) : null,
-    top_assist_a: myAssister ? myAssister.assists : null,
+    top_scorer: ms ? String(ms.name).slice(0, 40) : null,
+    top_scorer_g: ms ? ms.n : null,
+    top_scorer_rank: ms ? ms.rank : null,
+    top_assister: ma ? String(ma.name).slice(0, 40) : null,
+    top_assist_a: ma ? ma.n : null,
+    top_assist_rank: ma ? ma.rank : null,
   };
 }
 
@@ -1250,8 +1251,9 @@ async function openBoard(c, ret) {
     li.append(rank, nick, det);
     if (r.top_scorer) {
       const sc = document.createElement('span'); sc.className = 'b-scorer';
-      let s = (he ? 'מלך השערים ' : 'Top scorer ') + r.top_scorer + (r.top_scorer_g != null ? ' ' + r.top_scorer_g : '');
-      if (r.top_assister) s += '  ·  ' + (he ? 'בישולים ' : 'Assists ') + r.top_assister + (r.top_assist_a != null ? ' ' + r.top_assist_a : '');
+      const place = (rk) => rk ? (he ? ' · מקום ' : ' · #') + rk : '';
+      let s = (he ? 'מלך השערים ' : 'Top scorer ') + r.top_scorer + place(r.top_scorer_rank) + (r.top_scorer_g != null ? ' (' + r.top_scorer_g + ')' : '');
+      if (r.top_assister) s += '  ·  ' + (he ? 'בישולים ' : 'Assists ') + r.top_assister + place(r.top_assist_rank) + (r.top_assist_a != null ? ' (' + r.top_assist_a + ')' : '');
       sc.textContent = s;
       li.appendChild(sc);
     }

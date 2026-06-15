@@ -418,11 +418,22 @@ export function simulateTournament(xi, field2026, squads) {
   const rank = rows.findIndex(r => r.team === 'USER_XI') + 1;
   const groupTable = rows.map(r => ({ ...r }));
   const base = { groupKey, replaced, rank, groupTable };
-  // tournament Golden Boot / Playmaker — top 10 each from the all-match tally
-  const _rank = (key) => Object.values(tally).filter(x => x[key] > 0)
-    .sort((a, b) => b[key] - a[key] || (b.goals + b.assists) - (a.goals + a.assists))
-    .slice(0, 10);
-  const finish = (extra) => ({ journey, record, ...base, ...extra, topScorers: _rank('goals'), topAssisters: _rank('assists') });
+  // tournament Golden Boot / Playmaker — full ranked tally (sliced to 10 for display)
+  const _ranked = (key) => Object.values(tally).filter(x => x[key] > 0)
+    .sort((a, b) => b[key] - a[key] || (b.goals + b.assists) - (a.goals + a.assists));
+  // best-placed player from YOUR XI in the FULL tournament ranking (name + count + rank)
+  const _myBest = (list, key) => {
+    const i = list.findIndex(s => s.team === 'USER_XI');
+    return i < 0 ? null : { name: list[i].name, n: list[i][key], rank: i + 1 };
+  };
+  const finish = (extra) => {
+    const sc = _ranked('goals'), as = _ranked('assists');
+    return {
+      journey, record, ...base, ...extra,
+      topScorers: sc.slice(0, 10), topAssisters: as.slice(0, 10),
+      myBestScorer: _myBest(sc, 'goals'), myBestAssister: _myBest(as, 'assists'),
+    };
+  };
 
   // 2026 format: top-2 advance + the 8 best thirds of 12 (real comparison)
   const thirds = Object.entries(tables)
