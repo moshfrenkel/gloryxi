@@ -135,16 +135,24 @@ const TEND_PRIOR_GPC = { FW: 0.262, MF: 0.082, DF: 0.030 }; // pooled goals/cap 
 const TEND_K = { FW: 8, MF: 12, DF: 20 };                   // position-specific prior strength
 const TEND_SENS = 0.55, TEND_MIN = 0.75, TEND_MAX = 1.70;
 const AW_BOOST = { GoldenBoot: 0.18, GoldenBall: 0.10 };    // GoldenGlove intentionally ignored
+// For 2026 squads (caps=0, g = CAREER goals on a different scale): boost players who
+// have actually scored, vs the per-position median career-goal count (from players.json).
+const CAREER_GOAL_MED = { FW: 5, MF: 2, DF: 1 };
+const CAREER_SMOOTH = 2, CAREER_SENS = 0.32;
 
 function _goalTendency(p) {
   const pos = p.p;
   const prior = TEND_PRIOR_GPC[pos];
   if (pos === 'GK' || !prior) return 1;
   const g = p.g || 0, c = p.caps || 0;
-  // No tournament appearances → no measurable per-tournament rate. Covers uniform/
-  // selftest XIs AND 2026 squads (caps=0, where g is career goals on a different
-  // scale): stay neutral and let rating × position carry them. (~31% of the dataset.)
-  if (c === 0) return 1;
+  // No tournament appearances (caps=0): 2026 squads + uniform/selftest XIs. Here g is
+  // CAREER goals, so boost players who actually score vs the position's career median.
+  // g=0 (incl. every uniform/selftest player) stays EXACTLY neutral → result bands untouched.
+  if (c === 0) {
+    const med = CAREER_GOAL_MED[pos];
+    if (g === 0 || !med) return 1;
+    return Math.min(Math.max(Math.pow((g + CAREER_SMOOTH) / (med + CAREER_SMOOTH), CAREER_SENS), TEND_MIN), TEND_MAX);
+  }
   const k = TEND_K[pos];
   const post = (g + k * prior) / (c + k);
   let mul = Math.pow(post / prior, TEND_SENS);

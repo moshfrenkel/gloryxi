@@ -1305,7 +1305,7 @@ function showResult() {
   renderGoalKing(J);
 }
 
-// tournament Golden Boot / Playmaker (ALL teams) — closed box, click to expand
+// tournament Golden Boot / Playmaker (ALL teams) — always fully open
 function teamLabel(tm) { return tm === 'USER_XI' ? (S.teamName || t('lb_you')) : tm.toUpperCase(); }
 function renderGoalKing(J) {
   const el = $('result-scorers');
@@ -1315,16 +1315,12 @@ function renderGoalKing(J) {
   if (!scorers.length) { el.hidden = true; return; }
   el.hidden = false;
 
-  const toggle = document.createElement('button');
-  toggle.className = 'rs-toggle'; toggle.type = 'button';
-  toggle.setAttribute('aria-expanded', 'false');
-  const ttl = document.createElement('span'); ttl.className = 'rs-toggle-t t-cap'; ttl.textContent = t('tourney_stars');
-  const tease = document.createElement('span'); tease.className = 'rs-toggle-teaser';
-  tease.textContent = scorers[0].name + ' · ' + scorers[0].goals;
-  const chev = document.createElement('span'); chev.className = 'rs-chev'; chev.setAttribute('aria-hidden', 'true');
-  toggle.append(ttl, tease, chev);
+  const head = document.createElement('div');
+  head.className = 'rs-head t-cap';
+  head.textContent = t('tourney_stars');
+  el.appendChild(head);
 
-  const body = document.createElement('div'); body.className = 'rs-body'; body.hidden = true;
+  const body = document.createElement('div'); body.className = 'rs-body';
   const mkCol = (title, rows, cls, key) => {
     const col = document.createElement('div'); col.className = 'rs-col';
     const h = document.createElement('div'); h.className = 'rs-h t-cap'; h.textContent = title;
@@ -1342,8 +1338,7 @@ function renderGoalKing(J) {
   };
   body.appendChild(mkCol(t('top_scorers'), scorers.slice(0, 10), 'rs-goals', 'goals'));
   if (assisters.length) body.appendChild(mkCol(t('top_assists'), assisters.slice(0, 10), 'rs-assists', 'assists'));
-  toggle.addEventListener('click', () => { const open = body.hidden; body.hidden = !open; toggle.classList.toggle('open', open); toggle.setAttribute('aria-expanded', String(open)); });
-  el.append(toggle, body);
+  el.appendChild(body);
 }
 
 // if one of YOUR players finished top-3 in tournament goals or assists, return a badge line
@@ -1455,9 +1450,15 @@ function chGist(c)  { return (getLang() === 'he' ? c.g_he : c.g_en) || ''; }
 function updateDailyBtn() {
   const c = todayChallenge();
   const btn = $('daily-btn');
-  if (!c) { btn.hidden = true; return; }
-  btn.hidden = false;
-  $('daily-btn-label').textContent = t('daily_btn', c.d);
+  if (c) { btn.hidden = false; $('daily-btn-label').textContent = t('daily_btn', c.d); }
+  else btn.hidden = true;
+  // direct link to today's leaderboard from home — no need to play first
+  const bl = $('home-board-link');
+  if (bl) {
+    const ok = !!(c && lbConfigured());
+    bl.hidden = !ok;
+    if (ok) bl.innerHTML = t('lb_today'); // lb_today is a trusted static string (contains &#8594;)
+  }
 }
 
 function showDaily() {
@@ -1697,6 +1698,7 @@ function wire() {
   });
   $('lb-view').addEventListener('click', () => openBoard(S.challenge, 's6'));
   $('daily-board-link').addEventListener('click', () => openBoard(todayChallenge(), 's-daily'));
+  $('home-board-link').addEventListener('click', () => { openBoard(todayChallenge(), 's1'); track('board_open', { from: 'home' }); });
   $('board-back').addEventListener('click', () => show(S.boardReturn || 's1'));
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });

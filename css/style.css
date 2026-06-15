@@ -798,14 +798,10 @@ button:active, .player-row:active, .slot-option:active {
 
 /* tournament stars — closed box, expands to full Golden Boot / Playmaker tables */
 .result-scorers { margin: 4px 16px 16px; }
-.rs-toggle { width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 15px;
-  background: rgba(237,232,223,0.05); border: 1px solid var(--hair); border-inline-start: 3px solid var(--gold);
-  color: var(--bone); cursor: pointer; text-align: start; font-family: inherit; }
-.rs-toggle-t { font-size: 12px; color: var(--gold); flex: 0 0 auto; }
-.rs-toggle-teaser { font-size: 12.5px; color: var(--grey); flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rs-chev { flex: 0 0 auto; width: 0; height: 0; border-inline-start: 5px solid transparent; border-inline-end: 5px solid transparent; border-top: 6px solid var(--gold); transition: transform .2s; }
-.rs-toggle.open .rs-chev { transform: rotate(180deg); }
-.rs-body { display: flex; gap: 12px; flex-wrap: wrap; padding: 12px 4px 4px; }
+.rs-head { font-size: 12px; color: var(--gold); padding: 11px 15px;
+  background: rgba(237,232,223,0.05); border: 1px solid var(--hair); border-inline-start: 3px solid var(--gold); }
+.rs-body { display: flex; gap: 12px; flex-wrap: wrap; padding: 12px 13px 13px;
+  background: rgba(237,232,223,0.02); border: 1px solid var(--hair); border-top: none; }
 .rs-col { flex: 1 1 200px; }
 .rs-h { font-size: 11px; color: var(--gold); margin-bottom: 7px; }
 .rs-col:nth-child(2) .rs-h { color: var(--hot); }
@@ -820,6 +816,10 @@ button:active, .player-row:active, .slot-option:active {
 .rs-row.rs-top .rs-rank { color: var(--gold); }
 .rs-goals { color: var(--gold); }
 .rs-assists { color: var(--hot); }
+/* direct "today's board" link on the home screen */
+.home-board-link { display: block; margin: 4px auto 0; padding: 5px 12px; background: none; border: none;
+  color: var(--gold); font-size: 12.5px; letter-spacing: 0.04em; font-family: inherit; cursor: pointer; }
+.home-board-link:active { opacity: 0.6; }
 .scoreboard.sb-final .sb-score { animation: pip-pop 320ms cubic-bezier(.2,2,.4,1); }
 #btn-next-match { margin-top: 12px; }
 #btn-next-match:not(:disabled) { animation: tag-sway 5.5s ease-in-out infinite, tag-tug 6s ease-in-out infinite; }
