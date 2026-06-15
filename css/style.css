@@ -1265,10 +1265,11 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 .board-sub { color: var(--grey, #9a8f80); margin: 4px 0 0; letter-spacing: 0.12em; }
 .board-state { color: var(--bone); padding: 22px 6px; font-family: 'Space Grotesk', system-ui, sans-serif; }
 .board-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
-.board-li { display: flex; align-items: baseline; gap: 10px; padding: 11px 12px; border-bottom: 1px solid rgba(237,232,223,0.12); }
+.board-li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 10px; padding: 11px 12px; border-bottom: 1px solid rgba(237,232,223,0.12); }
 .board-li .b-rank { flex: 0 0 26px; font-family: var(--chalk); font-weight: 700; color: var(--hot); font-size: 19px; }
 .board-li .b-nick { flex: 1; min-width: 0; color: var(--bone); font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-li .b-det { flex: 0 0 auto; color: var(--grey, #9a8f80); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 12px; }
+.board-li .b-scorer { flex-basis: 100%; padding-inline-start: 36px; color: var(--gold); font-size: 11.5px; opacity: 0.92; }
 .board-li.me { background: rgba(245,197,24,0.14); border-inline-start: 3px solid var(--gold); }
 .board-li.me .b-nick { color: var(--gold); }
 .b-you { color: var(--gold); font-size: 9px; letter-spacing: 0.12em; margin-inline-start: 6px; }

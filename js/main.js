@@ -1180,12 +1180,19 @@ function challengeProof(c, J) {
 function buildScoreRow(c, J) {
   const R = J.record;
   const avg = Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
+  // your XI's own top scorer / assister in the tournament (first USER_XI entry)
+  const myScorer = (J.topScorers || []).find(s => s.team === 'USER_XI');
+  const myAssister = (J.topAssisters || []).find(s => s.team === 'USER_XI');
   return {
     day: c.d, game_date: c.date, nick: getNick(),
     team: (S.teamName || '').slice(0, 30),
     stage: J.finalStage, stage_rank: STAGE_RANK[J.finalStage] ?? 0,
     ok: S.challengeOk, metric: markMetric(c), sv: challengeValue(c, J),
     avg, gd: R.gf - R.ga, gf: R.gf, ga: R.ga, tries: S.tryNo || 0,
+    top_scorer: myScorer ? String(myScorer.name).slice(0, 40) : null,
+    top_scorer_g: myScorer ? myScorer.goals : null,
+    top_assister: myAssister ? String(myAssister.name).slice(0, 40) : null,
+    top_assist_a: myAssister ? myAssister.assists : null,
   };
 }
 
@@ -1241,6 +1248,13 @@ async function openBoard(c, ret) {
     const det = document.createElement('span'); det.className = 'b-det';
     det.textContent = shortStage(r.stage) + ' · ' + dimDetail(dim, r, he) + (r.ok === true ? ' ✓' : r.ok === false ? ' ✗' : '');
     li.append(rank, nick, det);
+    if (r.top_scorer) {
+      const sc = document.createElement('span'); sc.className = 'b-scorer';
+      let s = (he ? 'מלך השערים ' : 'Top scorer ') + r.top_scorer + (r.top_scorer_g != null ? ' ' + r.top_scorer_g : '');
+      if (r.top_assister) s += '  ·  ' + (he ? 'בישולים ' : 'Assists ') + r.top_assister + (r.top_assist_a != null ? ' ' + r.top_assist_a : '');
+      sc.textContent = s;
+      li.appendChild(sc);
+    }
     list.appendChild(li);
   });
   const foot = document.createElement('li'); foot.className = 'board-foot t-cap'; foot.textContent = t('lb_players', count);
