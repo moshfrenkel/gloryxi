@@ -4,7 +4,7 @@
    Mechanics: auto-spin (no hold), pick any player then a free compatible slot,
    ratings always visible, one player per country, 1 team-skip + 1 year-skip. */
 
-import { simulateTournament, computeTeamScores, computeTeamElo } from './sim.js';
+import { simulateTournament, computeTeamScores, computeTeamElo, buildOpponentXiObject } from './sim.js';
 import { shareResult, shareStory } from './share.js';
 import { t, getLang, setLang, applyStatic } from './i18n.js';
 import { kitFor, jerseySVG } from './kits.js';
@@ -681,9 +681,16 @@ function runTournament() {
   const xiSim = {};
   for (const slot of SLOTS) {
     const p = S.xi[slot];
-    xiSim[slot] = { n: surname(p.n).toUpperCase(), p: p.p, r: p.r, sp: p.sp };
+    // carry g/caps/aw so the personal goal-tendency applies to the user's scorers
+    xiSim[slot] = { n: surname(p.n).toUpperCase(), p: p.p, r: p.r, sp: p.sp, g: p.g, caps: p.caps, aw: p.aw };
   }
-  S.journey = simulateTournament(xiSim, S.field);
+  // real 2026 squad for every opponent nation — powers opponent scorers + per-line averages
+  const squads = {};
+  for (const country of Object.values(S.field.groups).flat()) {
+    const sq = S.squads.get(country + '|2026');
+    if (sq && sq.length >= 11) squads[country] = sq;
+  }
+  S.journey = simulateTournament(xiSim, S.field, squads);
 
   show('s5');
   const feed = $('printer-feed');
@@ -845,6 +852,21 @@ function renderStrengthPanel(xiSim, groupOpps) {
     ev.className = 'sp-opp-e';
     ev.textContent = oe;
     row.append(nm, bar, ev);
+    // per-line averages for this opponent, from its real 2026 XI (request 3א)
+    const sq = S.squads.get(o + '|2026');
+    if (sq && sq.length >= 11) {
+      const osc = computeTeamScores(buildOpponentXiObject(sq));
+      const lines = document.createElement('div');
+      lines.className = 'sp-opp-lines';
+      [['ATT', osc.attack], ['MID', osc.midfield], ['DEF', osc.defense]].forEach(([k, v]) => {
+        const s = document.createElement('span');
+        s.className = 'sp-opp-line';
+        const ik = document.createElement('i'); ik.textContent = k;
+        s.append(ik, document.createTextNode(' ' + Math.round(v)));
+        lines.appendChild(s);
+      });
+      row.appendChild(lines);
+    }
     oppsBox.appendChild(row);
   });
   panel.appendChild(oppsBox);
@@ -868,7 +890,7 @@ function renderScoreboard(m, stageTag, cb) {
   const row = document.createElement('div');
   row.className = 'sb-row';
 
-  const mkSide = (label, country) => {
+  const mkSide = (label, country, lines) => {
     const side = document.createElement('div');
     side.className = 'sb-team';
     if (country) side.appendChild(makeFlag(country));
@@ -882,8 +904,22 @@ function renderScoreboard(m, stageTag, cb) {
     code.className = 'sb-code';
     code.textContent = label;
     side.appendChild(code);
+    if (lines) {
+      const ovr = document.createElement('div'); ovr.className = 'sb-ovr-mini'; ovr.textContent = lines.ovr;
+      const ln = document.createElement('div'); ln.className = 'sb-team-lines';
+      ln.textContent = 'ATT ' + lines.att + ' · MID ' + lines.mid + ' · DEF ' + lines.def;
+      side.append(ovr, ln);
+    }
     return side;
   };
+  // opponent per-line averages, shown under their name in EVERY match
+  let oppLines = null;
+  const oppSq = S.squads.get(m.opponent + '|2026');
+  if (oppSq && oppSq.length >= 11) {
+    const osc = computeTeamScores(buildOpponentXiObject(oppSq));
+    oppLines = { ovr: Math.round((osc.attack + osc.midfield + osc.defense) / 3),
+      att: Math.round(osc.attack), mid: Math.round(osc.midfield), def: Math.round(osc.defense) };
+  }
 
   const scoreBox = document.createElement('div');
   scoreBox.className = 'sb-score';
@@ -896,7 +932,7 @@ function renderScoreboard(m, stageTag, cb) {
   sAg.textContent = '0';
   scoreBox.append(sFor, dash, sAg);
 
-  row.append(mkSide(S.teamName.length > 10 ? S.teamName.slice(0, 9) + '…' : S.teamName, null), scoreBox, mkSide(codeOf(m.opponent), m.opponent));
+  row.append(mkSide(S.teamName.length > 10 ? S.teamName.slice(0, 9) + '…' : S.teamName, null), scoreBox, mkSide(codeOf(m.opponent), m.opponent, oppLines));
   sb.appendChild(row);
 
   if (m.note) {
@@ -923,12 +959,22 @@ function renderScoreboard(m, stageTag, cb) {
     if (step >= maxScore) {
       clearInterval(t);
       sb.classList.add('sb-final');
-      for (const sc of (m.scorers || [])) {
-        const line = document.createElement('div');
-        line.className = 'sb-goal';
-        line.textContent = sc.minute + "'  " + sc.name;
-        scorersBox.appendChild(line);
-      }
+      // two columns: your goals (with assists) on your side, the opponent's on theirs
+      const mkGoals = (list, side) => {
+        const col = document.createElement('div');
+        col.className = 'sb-goal-col sb-goal-' + side;
+        for (const sc of (list || [])) {
+          const line = document.createElement('div');
+          line.className = 'sb-goal';
+          const min = document.createElement('span'); min.className = 'sb-min'; min.textContent = sc.minute + "'";
+          const nm = document.createElement('span'); nm.className = 'sb-gname'; nm.textContent = sc.name;
+          line.append(min, nm);
+          if (sc.assist) { const a = document.createElement('span'); a.className = 'sb-assist'; a.textContent = sc.assist; line.appendChild(a); }
+          col.appendChild(line);
+        }
+        return col;
+      };
+      scorersBox.append(mkGoals(m.scorers, 'you'), mkGoals(m.opponentScorers, 'opp'));
       feed.scrollTop = feed.scrollHeight;
       if (cb) cb();
     }
@@ -1251,6 +1297,74 @@ function showResult() {
   document.querySelector('#s6 .tracklist-label').textContent = S.teamName;
 
   renderPitchInto('result-slots', true);
+  const ach = tourneyAchievement(J);
+  const badge = $('tourney-badge');
+  if (badge) {
+    if (ach) { badge.textContent = ach; badge.hidden = false; } else badge.hidden = true;
+  }
+  renderGoalKing(J);
+}
+
+// tournament Golden Boot / Playmaker (ALL teams) — closed box, click to expand
+function teamLabel(tm) { return tm === 'USER_XI' ? (S.teamName || t('lb_you')) : tm.toUpperCase(); }
+function renderGoalKing(J) {
+  const el = $('result-scorers');
+  if (!el) return;
+  const scorers = J.topScorers || [], assisters = J.topAssisters || [];
+  el.innerHTML = '';
+  if (!scorers.length) { el.hidden = true; return; }
+  el.hidden = false;
+
+  const toggle = document.createElement('button');
+  toggle.className = 'rs-toggle'; toggle.type = 'button';
+  toggle.setAttribute('aria-expanded', 'false');
+  const ttl = document.createElement('span'); ttl.className = 'rs-toggle-t t-cap'; ttl.textContent = t('tourney_stars');
+  const tease = document.createElement('span'); tease.className = 'rs-toggle-teaser';
+  tease.textContent = scorers[0].name + ' · ' + scorers[0].goals;
+  const chev = document.createElement('span'); chev.className = 'rs-chev'; chev.setAttribute('aria-hidden', 'true');
+  toggle.append(ttl, tease, chev);
+
+  const body = document.createElement('div'); body.className = 'rs-body'; body.hidden = true;
+  const mkCol = (title, rows, cls, key) => {
+    const col = document.createElement('div'); col.className = 'rs-col';
+    const h = document.createElement('div'); h.className = 'rs-h t-cap'; h.textContent = title;
+    col.appendChild(h);
+    rows.forEach((s, i) => {
+      const r = document.createElement('div'); r.className = 'rs-row' + (i === 0 ? ' rs-top' : '') + (s.team === 'USER_XI' ? ' rs-mine' : '');
+      const rk = document.createElement('span'); rk.className = 'rs-rank'; rk.textContent = i + 1;
+      const nm = document.createElement('span'); nm.className = 'rs-name'; nm.textContent = s.name;
+      const tm = document.createElement('span'); tm.className = 'rs-team'; tm.textContent = teamLabel(s.team);
+      const v = document.createElement('span'); v.className = 'rs-val ' + cls; v.textContent = s[key];
+      r.append(rk, nm, tm, v);
+      col.appendChild(r);
+    });
+    return col;
+  };
+  body.appendChild(mkCol(t('top_scorers'), scorers.slice(0, 10), 'rs-goals', 'goals'));
+  if (assisters.length) body.appendChild(mkCol(t('top_assists'), assisters.slice(0, 10), 'rs-assists', 'assists'));
+  toggle.addEventListener('click', () => { const open = body.hidden; body.hidden = !open; toggle.classList.toggle('open', open); toggle.setAttribute('aria-expanded', String(open)); });
+  el.append(toggle, body);
+}
+
+// if one of YOUR players finished top-3 in tournament goals or assists, return a badge line
+function tourneyAchievement(J) {
+  const ord = ['1st', '2nd', '3rd'];
+  const scan = (list, kind) => {
+    for (let i = 0; i < Math.min(3, (list || []).length); i++) {
+      if (list[i].team === 'USER_XI') return { name: list[i].name, rank: i, kind, n: list[i][kind === 'scorer' ? 'goals' : 'assists'] };
+    }
+    return null;
+  };
+  const s = scan(J.topScorers, 'scorer'), a = scan(J.topAssisters, 'assist');
+  const pick = (s && (!a || s.rank <= a.rank)) ? s : a;
+  if (!pick) return null;
+  const he = getLang() === 'he';
+  const label = pick.kind === 'scorer'
+    ? (he ? 'מלך השערים' : 'TOP SCORER') : (he ? 'מלך הבישולים' : 'TOP ASSISTS');
+  const place = he ? ['ה-1', 'ה-2', 'ה-3'][pick.rank] : ord[pick.rank];
+  return he
+    ? `${pick.name}, מקום ${place} ב${label} של הטורניר`
+    : `${pick.name} — ${place} in tournament ${label.toLowerCase()}`;
 }
 
 // ── reset ─────────────────────────────────────────────────────────────────────
@@ -1587,7 +1701,7 @@ function wire() {
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
     const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0, proof: challengeProof(S.challenge, S.journey), mark: challengeMark(S.challenge, S.journey) } : null;
-    shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily).catch(console.error);
+    shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily, tourneyAchievement(S.journey)).catch(console.error);
   });
 }
 

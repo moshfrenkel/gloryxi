@@ -122,6 +122,9 @@ const D = {
   sp_mid:     { en: 'MID', he: 'קישור' },
   sp_def:     { en: 'DEF', he: 'הגנה' },
   weak_link:  { en: ' · WEAK LINK', he: ' · החוליה החלשה' },
+  top_scorers: { en: 'TOP SCORERS', he: 'מלך השערים' },
+  top_assists: { en: 'TOP ASSISTS', he: 'מלך הבישולים' },
+  tourney_stars: { en: 'TOURNAMENT STARS', he: 'כוכבי הטורניר' },
 
   // stages + verdicts
   st_GROUP:   { en: 'GROUP', he: 'שלב הבתים' },

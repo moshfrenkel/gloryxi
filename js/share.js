@@ -131,7 +131,7 @@ export async function shareStory(a, lang) {
   }
 }
 
-export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, teamName, daily) {
+export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, teamName, daily, achievement) {
   teamName = (teamName || 'YOUR XI').toUpperCase();
   await loadAnton();
   const W = 1080, H = 1350;
@@ -180,8 +180,10 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
     if (daily.proof) rows.push({ s: tickMark.trim() + '  ' + daily.proof, f: '800 24px "Space Grotesk", "Segoe UI", sans-serif' });
     if (daily.mark) rows.push({ s: daily.mark, f: '800 24px "Space Grotesk", "Segoe UI", sans-serif' });
   }
-  const stripH = daily ? (18 + rows.length * 30 + 8) : 0;
-  if (daily) {
+  if (achievement) rows.push({ s: '★ ' + achievement.toUpperCase(), f: '800 24px "Space Grotesk", "Segoe UI", sans-serif' });
+  const hasStrip = daily || achievement;
+  const stripH = hasStrip ? (18 + rows.length * 30 + 8) : 0;
+  if (hasStrip) {
     const sy = 238;
     x.fillStyle = GOLD;
     x.fillRect(60, sy, W - 120, stripH);
@@ -193,8 +195,8 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
 
   // pitch zone — a coach's dark slate with chalk-drawn lines (shifted under daily strip)
   const PX = 60, PW = W - 120;
-  const PY = daily ? (238 + stripH + 23) : 260;
-  const PH = daily ? (1180 - PY) : 920;
+  const PY = hasStrip ? (238 + stripH + 23) : 260;
+  const PH = hasStrip ? (1180 - PY) : 920;
   // slate panel: faint dark-green hint over the charcoal
   const slate = x.createLinearGradient(PX, PY, PX, PY + PH);
   slate.addColorStop(0, 'rgba(47,143,74,0.10)');

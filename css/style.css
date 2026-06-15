@@ -761,14 +761,65 @@ button:active, .player-row:active, .slot-option:active {
   text-align: center; font-size: 13px; color: var(--grey);
   font-family: 'Space Grotesk', sans-serif; margin-top: 4px;
 }
-.sb-scorers { margin-top: 8px; }
+.sb-scorers { margin-top: 8px; display: flex; justify-content: space-between; gap: 14px; }
+.sb-goal-col { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; }
 .sb-goal {
-  font-size: 14.5px; color: #9b948a; line-height: 1.6;
-  border-top: 1px dotted rgba(237,232,223,0.18); padding: 3px 2px 2px;
+  font-size: 13.5px; line-height: 1.5; color: #b8b1a6;
+  border-top: 1px dotted rgba(237,232,223,0.16); padding: 4px 2px 3px;
+  display: flex; gap: 7px; align-items: baseline; flex-wrap: wrap;
   animation: goal-flash 900ms ease-out backwards;
 }
+.sb-goal-opp { text-align: end; }
+.sb-goal-opp .sb-goal { flex-direction: row-reverse; }
+.sb-min { color: var(--gold); font-weight: 700; font-family: 'Courier New', monospace; font-size: 12px; flex: 0 0 auto; }
+.sb-goal-opp .sb-min { color: var(--grey); }
+.sb-gname { font-weight: 600; color: var(--bone); }
+.sb-goal-opp .sb-gname { color: #9b948a; font-weight: 400; }
+.sb-assist { font-size: 11px; color: var(--grey); flex-basis: 100%; }
+.sb-assist::before { content: '↳ '; opacity: 0.6; }
+.sb-goal-opp .sb-assist::before { content: '↰ '; }
 @keyframes goal-flash { from { background: rgba(43,212,192,0.22); } }
-.sb-goal::before { content: 'GOAL '; color: var(--hot); font-weight: 700; }
+
+/* opponent per-line averages in the strength panel (request 3א) */
+.sp-opp { flex-wrap: wrap; }
+.sp-opp-lines { flex-basis: 100%; display: flex; gap: 12px; padding: 3px 0 2px 30px; }
+.sp-opp-line { font-size: 11px; color: var(--grey); font-family: 'Courier New', monospace; }
+.sp-opp-line i { color: var(--bone); opacity: 0.65; font-style: normal; font-size: 10px; margin-inline-end: 2px; }
+
+/* opponent line averages under the team code in the scoreboard */
+.sb-ovr-mini { font-family: 'Courier New', monospace; font-weight: 800; font-size: 15px; color: var(--gold); margin-top: 3px; line-height: 1; }
+.sb-team-lines { font-size: 9.5px; color: var(--grey); margin-top: 2px; white-space: nowrap; }
+
+/* tournament achievement badge on the result screen */
+.tourney-badge { margin: 2px 16px 10px; padding: 9px 13px; background: var(--gold); color: var(--ink);
+  font-weight: 700; font-size: 13px; line-height: 1.35;
+  clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%); }
+.tourney-badge::before { content: '\2605  '; }
+
+/* tournament stars — closed box, expands to full Golden Boot / Playmaker tables */
+.result-scorers { margin: 4px 16px 16px; }
+.rs-toggle { width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 15px;
+  background: rgba(237,232,223,0.05); border: 1px solid var(--hair); border-inline-start: 3px solid var(--gold);
+  color: var(--bone); cursor: pointer; text-align: start; font-family: inherit; }
+.rs-toggle-t { font-size: 12px; color: var(--gold); flex: 0 0 auto; }
+.rs-toggle-teaser { font-size: 12.5px; color: var(--grey); flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-chev { flex: 0 0 auto; width: 0; height: 0; border-inline-start: 5px solid transparent; border-inline-end: 5px solid transparent; border-top: 6px solid var(--gold); transition: transform .2s; }
+.rs-toggle.open .rs-chev { transform: rotate(180deg); }
+.rs-body { display: flex; gap: 12px; flex-wrap: wrap; padding: 12px 4px 4px; }
+.rs-col { flex: 1 1 200px; }
+.rs-h { font-size: 11px; color: var(--gold); margin-bottom: 7px; }
+.rs-col:nth-child(2) .rs-h { color: var(--hot); }
+.rs-row { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; border-top: 1px dotted rgba(237,232,223,0.1); }
+.rs-rank { font-family: 'Courier New', monospace; font-size: 11px; color: var(--grey); flex: 0 0 18px; }
+.rs-name { font-size: 13px; color: var(--bone); flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-team { font-size: 10px; color: var(--grey); flex: 0 0 auto; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-row.rs-mine { background: rgba(245,197,24,0.08); }
+.rs-row.rs-mine .rs-name { font-weight: 800; color: var(--gold); }
+.rs-val { font-family: 'Courier New', monospace; font-weight: 800; flex: 0 0 auto; }
+.rs-row.rs-top .rs-val { font-size: 16px; }
+.rs-row.rs-top .rs-rank { color: var(--gold); }
+.rs-goals { color: var(--gold); }
+.rs-assists { color: var(--hot); }
 .scoreboard.sb-final .sb-score { animation: pip-pop 320ms cubic-bezier(.2,2,.4,1); }
 #btn-next-match { margin-top: 12px; }
 #btn-next-match:not(:disabled) { animation: tag-sway 5.5s ease-in-out infinite, tag-tug 6s ease-in-out infinite; }
