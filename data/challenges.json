@@ -102,16 +102,26 @@
   "date": "2026-06-17",
   "t_en": "TIME TRAVEL",
   "t_he": "מסע בזמן",
-  "x_en": "One player from every decade, 1930s to today.",
-  "x_he": "שחקן מכל עשור, משנות ה-30 ועד היום.",
-  "g_en": "ONE PLAYER PER DECADE",
-  "g_he": "שחקן מכל עשור",
+  "x_en": "Your spine walks through time: one player per decade, 30s to 2020s. Strikers free, any era.",
+  "x_he": "השדרה שלך מטיילת בזמן: שחקן לכל עשור, מהשנות ה-30 ועד ה-2020. החוד חופשי, מכל עידן.",
+  "g_en": "BUILD THE TIME MAP",
+  "g_he": "בנה את מפת הזמן",
   "flt": {
-   "decades": true
+   "slotEra": {
+    "GK": 193,
+    "RB": 195,
+    "CB1": 196,
+    "CB2": 197,
+    "LB": 198,
+    "CM1": 199,
+    "CM2": 200,
+    "RM": 201,
+    "LM": 202
+   }
   },
   "win": [
    {
-    "k": "decades"
+    "k": "timeMap"
    }
   ]
  },

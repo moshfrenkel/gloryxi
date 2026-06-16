@@ -135,6 +135,8 @@ function slotsForPos(pos) {
 // one-country-once rule on short nation lists) / pos ["FW"] (only these natural
 // positions, placeable in ANY slot) / cap {GK:65} (rating ceiling per slot
 // group) / decades (draw serves missing decades until all 9 are covered) /
+// slotEra {SLOT: decadeKey} (day 7 time-map: each listed slot accepts only that
+// decade; unlisted slots stay free — draw steers to still-open decades) /
 // wideNatural (RB/LB/RM/LM only accept players whose real positions include
 // that exact slot) / legendPos, legendMin (hall-of-legends restrictions).
 function challengeFlt() { return (S.challenge && S.challenge.flt) || null; }
@@ -145,6 +147,7 @@ const CAP_GROUP = (slot) => slot === 'GK' ? 'GK'
   : slot.startsWith('ST') ? 'FW' : 'MF';
 const decadeOf = (y) => y < 1940 ? 193 : Math.floor(y / 10);
 const ALL_DECADES = 9; // 30s 50s 60s 70s 80s 90s 00s 10s 20s — no 1940s cups
+const DECADE_LABEL = { 193: '30s', 195: '50s', 196: '60s', 197: '70s', 198: '80s', 199: '90s', 200: '00s', 201: '10s', 202: '20s' };
 
 // where may THIS player go right now — single source of truth for the draw
 // validator, the squad sheet and the hall of legends
@@ -157,6 +160,8 @@ function eligibleSlots(p) {
   } else slots = slotsForPos(p.p);
   if (f && f.cap) slots = slots.filter(s => { const cap = f.cap[CAP_GROUP(s)]; return cap == null || p.r <= cap; });
   if (f && f.wideNatural) slots = slots.filter(s => !WIDE_SLOTS.includes(s) || (p.sp && p.sp.split('/').includes(s)));
+  // time-map days (day 7): each listed slot accepts ONLY its decade; unlisted slots (ST1/ST2) stay free
+  if (f && f.slotEra) { const dec = decadeOf(p.y); slots = slots.filter(s => f.slotEra[s] == null || f.slotEra[s] === dec); }
   return slots;
 }
 
@@ -189,6 +194,15 @@ function pickCombo(constraint) {
     const have = new Set(Object.values(S.xi).map(p => decadeOf(p.y)));
     if (have.size < ALL_DECADES) {
       const sub = pool.filter(([, y]) => !have.has(decadeOf(y)));
+      if (sub.length) pool = sub;
+    }
+  }
+  // time-map days: steer the reel to a decade that still has an open era-locked slot
+  if (f && f.slotEra) {
+    const need = new Set();
+    for (const [slot, dec] of Object.entries(f.slotEra)) if (!S.xi[slot]) need.add(dec);
+    if (need.size) {
+      const sub = pool.filter(([, y]) => need.has(decadeOf(y)));
       if (sub.length) pool = sub;
     }
   }
@@ -462,6 +476,7 @@ function toggleSlotStrip(row, p) {
   cap.className = 't-cap';
   cap.textContent = t('place_at');
   strip.appendChild(cap);
+  const f = challengeFlt();
   for (const slot of eligibleSlots(p)) {
     const b = document.createElement('button');
     b.className = 'slot-option';
@@ -470,6 +485,7 @@ function toggleSlotStrip(row, p) {
     const token = slot === 'GK' ? 'GK' : slot.startsWith('CB') ? 'CB' : slot.startsWith('CM') ? 'CM' : slot.startsWith('ST') ? 'ST' : slot;
     if (p.sp && !p.sp.split('/').includes(token)) b.classList.add('off-pos');
     b.textContent = SLOT_LABEL[slot];
+    if (f && f.slotEra && f.slotEra[slot] != null) b.textContent += ' · ' + DECADE_LABEL[f.slotEra[slot]];
     b.addEventListener('click', (e) => { e.stopPropagation(); place(p, slot); });
     strip.appendChild(b);
   }
@@ -1091,8 +1107,13 @@ function evalCond(w, J) {
       const g = _goalsBySlot(J);
       return ['ST1', 'ST2'].every(s => S.xi[s] && S.xi[s].r >= w.minR && (g[s] || 0) >= w.goals);
     }
-    case 'decades':     // XI covers all 9 World Cup decades (day 7)
+    case 'decades':     // XI covers all 9 World Cup decades (legacy)
       return new Set(Object.values(S.xi).map(p => decadeOf(p.y))).size >= ALL_DECADES;
+    case 'timeMap': {   // each era-locked slot holds a player of its decade (day 7)
+      const f = challengeFlt();
+      if (!f || !f.slotEra) return false;
+      return Object.entries(f.slotEra).every(([s, dec]) => S.xi[s] && decadeOf(S.xi[s].y) === dec);
+    }
     case 'anyNation':   // at least one player from this set (day 11)
       return Object.values(S.xi).some(p => w.nations.includes(p.c));
     default: return true;
@@ -1198,6 +1219,7 @@ function challengeProof(c, J) {
     case 'perfect':   return ok ? ev("7 WINS, ALL IN 90'", '7 ניצחונות, הכל בזמן חוקי') : ev('NOT A PERFECT RECORD', 'המאזן לא היה מושלם');
     case 'champion':  return ok ? ev('LIFTED THE CUP', 'הרמת את הגביע') : ev("DIDN'T WIN IT", 'לא זכית בגביע');
     case 'decades': { const cov = new Set(Object.values(S.xi).map(p => decadeOf(p.y))).size; return ok ? ev('ALL 9 DECADES COVERED', 'כל 9 העשורים כוסו') : ev(cov + ' OF 9 DECADES', cov + ' מתוך 9 עשורים'); }
+    case 'timeMap':   return ok ? ev('TIME MAP COMPLETE — 9 DECADES', 'מפת הזמן הושלמה, 9 עשורים') : ev('TIME MAP INCOMPLETE', 'מפת הזמן לא הושלמה');
     case 'anyNation': { const hit = Object.values(S.xi).find(p => w.nations.includes(p.c)); return hit ? ev('FIELDED ' + hit.c.toUpperCase(), 'שיבצת את ' + hit.c) : ev('NO NATION PLAYING TODAY', 'אף נבחרת ששיחקה היום'); }
     case 'hatTrick':  return ok ? ev((name || 'A PLAYER') + ' SCORED A HAT-TRICK', (name || 'שחקן') + ' עשה שלושער') : ev('NO HAT-TRICK', 'לא היה שלושער');
     case 'strikers':  return ok ? ev('BOTH STRIKERS DELIVERED', 'שני החלוצים סיפקו') : ev('STRIKERS FELL SHORT', 'החלוצים לא סיפקו');
