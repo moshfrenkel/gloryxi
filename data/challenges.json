@@ -100,30 +100,12 @@
  {
   "d": 7,
   "date": "2026-06-17",
-  "t_en": "TIME TRAVEL",
-  "t_he": "מסע בזמן",
-  "x_en": "Your spine walks through time: one player per decade, 30s to 2020s. Strikers free, any era.",
-  "x_he": "השדרה שלך מטיילת בזמן: שחקן לכל עשור, מהשנות ה-30 ועד ה-2020. החוד חופשי, מכל עידן.",
-  "g_en": "BUILD THE TIME MAP",
-  "g_he": "בנה את מפת הזמן",
-  "flt": {
-   "slotEra": {
-    "GK": 193,
-    "RB": 195,
-    "CB1": 196,
-    "CB2": 197,
-    "LB": 198,
-    "CM1": 199,
-    "CM2": 200,
-    "RM": 201,
-    "LM": 202
-   }
-  },
-  "win": [
-   {
-    "k": "timeMap"
-   }
-  ]
+  "t_en": "FREE XI",
+  "t_he": "הרכב חופשי",
+  "x_en": "No rules today. Build your best XI and go as far as you can. The board ranks by how far you reach, goal difference breaks ties.",
+  "x_he": "היום בלי חוקים. תבנה את ההרכב הכי טוב שלך ותגיע כמה שיותר רחוק. הלוח מדרג לפי כמה רחוק הגעת, והפרש שערים שובר שוויון.",
+  "g_en": "BUILD YOUR BEST XI",
+  "g_he": "בנה את ההרכב הכי טוב שלך"
  },
  {
   "d": 8,
