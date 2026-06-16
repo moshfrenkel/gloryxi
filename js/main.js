@@ -65,14 +65,18 @@ function gamesBucket(n) {
 
 // ── data ──────────────────────────────────────────────────────────────────────
 async function loadData() {
+  // content files change daily (challenges/articles/fixtures/results) — bust the
+  // browser/CDN cache each load so edits show up immediately; the big static
+  // files (players/teams/field) stay cacheable.
+  const cb = '?v=' + Date.now();
   const [p, t, f, ch, ar, fx, rs] = await Promise.all([
     fetch('./data/players.json').then(r => r.json()),
     fetch('./data/teams.json').then(r => r.json()),
     fetch('./data/field2026.json').then(r => r.json()),
-    fetch('./data/challenges.json').then(r => r.json()).catch(() => []),
-    fetch('./data/articles.json').then(r => r.json()).catch(() => ({ articles: [] })),
-    fetch('./data/fixtures.json').then(r => r.json()).catch(() => ({ fixtures: [] })),
-    fetch('./data/results.json').then(r => r.json()).catch(() => ({ matches: [] })),
+    fetch('./data/challenges.json' + cb).then(r => r.json()).catch(() => []),
+    fetch('./data/articles.json' + cb).then(r => r.json()).catch(() => ({ articles: [] })),
+    fetch('./data/fixtures.json' + cb).then(r => r.json()).catch(() => ({ fixtures: [] })),
+    fetch('./data/results.json' + cb).then(r => r.json()).catch(() => ({ matches: [] })),
   ]);
   S.players = p;
   S.teams = t.teams;
