@@ -87,10 +87,10 @@
   "date": "2026-06-16",
   "t_en": "BRAVE KEEPER",
   "t_he": "שוער אמיץ",
-  "x_en": "Goalkeeper rated 65 or less. Survive.",
-  "x_he": "שוער בדירוג 65 ומטה. שרוד.",
-  "g_en": "KEEPER RATED 65 OR LESS",
-  "g_he": "שוער עד דירוג 65",
+  "x_en": "Goalkeeper rated 65 or less, then survive as deep as you can. The board ranks who went furthest, and among equals, who did it with the weakest keeper.",
+  "x_he": "שוער בדירוג 65 ומטה, ואז שרוד כמה שיותר רחוק. הטבלה מדרגת מי הגיע הכי רחוק, ובין שווים מי עשה זאת עם השוער הכי גרוע.",
+  "g_en": "FURTHEST RUN, KEEPER 65 OR LESS",
+  "g_he": "הכי רחוק, שוער עד 65",
   "flt": {
    "cap": {
     "GK": 65

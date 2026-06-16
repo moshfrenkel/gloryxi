@@ -1094,7 +1094,7 @@ function evalChallenge(c, J) {
 // ── the day's achievement dimension — the board ranks on the daily CHALLENGE ──
 // (e.g. day 4 = defender goals), not a generic best run. Order everywhere:
 // met-the-rule first, then this magnitude, then furthest, then goal-diff.
-const MARK_METRIC = { 6: 'cleanest', 9: 'lowAvg', 13: 'lowAvg', 19: 'mostGoals', 24: 'fewestTries', 30: 'mostGoals', 31: 'cleanest', 34: 'cleanest' };
+const MARK_METRIC = { 6: 'keeperRun', 9: 'lowAvg', 13: 'lowAvg', 19: 'mostGoals', 24: 'fewestTries', 30: 'mostGoals', 31: 'cleanest', 34: 'cleanest' };
 const markMetric = (c) => (c && MARK_METRIC[c.d]) || 'furthest';
 const shortStage = (s) => s === 'CHAMPION' ? t('rs_champ') : s === 'GROUP_EXIT' ? t('st_GROUP') : t('st_' + s);
 
@@ -1122,6 +1122,7 @@ function challengeValue(c, J) {
     case 'topGoals':     return Math.max(0, 0, ...Object.values(g));
     case 'hatTrick':     { let mx = 0; for (const m of J.journey) { const per = {}; for (const s of (m.scorers || [])) if (s.slot) { per[s.slot] = (per[s.slot] || 0) + 1; if (per[s.slot] > mx) mx = per[s.slot]; } } return mx; }
     case 'cleanest':     return -R.ga;
+    case 'keeperRun':    { const gk = S.xi.GK ? S.xi.GK.r : 65; return (STAGE_RANK[J.finalStage] ?? 0) * 100 + (65 - gk); }
     case 'lowAvg':       return -Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
     case 'mostGoals':    return R.gf;
     case 'fewestTries':  return -(S.tryNo || 0);
@@ -1138,6 +1139,7 @@ function dimDetail(dim, r, he) {
     case 'topGoals':     return sv + (he ? ' שערי המלך' : ' top-scorer goals');
     case 'hatTrick':     return (he ? 'שיא ' : 'best ') + sv + (he ? ' במשחק' : '/match');
     case 'cleanest':     return r.ga + (he ? ' ספיגות' : ' conceded');
+    case 'keeperRun':    return (he ? 'שוער ' : 'keeper ') + (r.gk_r != null ? r.gk_r : '?');
     case 'lowAvg':       return (he ? 'ממוצע ' : 'avg ') + r.avg;
     case 'mostGoals':    return r.gf + (he ? ' שערים' : ' goals');
     case 'fewestTries':  return (r.tries || '?') + (he ? ' ניסיונות' : ' tries');
@@ -1148,7 +1150,7 @@ function dimDetail(dim, r, he) {
 function challengeMark(c, J) {
   if (!c || !J) return '';
   const he = getLang() === 'he', R = J.record;
-  const r = { sv: challengeValue(c, J), ga: R.ga, avg: Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11), gf: R.gf, tries: S.tryNo || 0, gd: R.gf - R.ga };
+  const r = { sv: challengeValue(c, J), ga: R.ga, avg: Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11), gf: R.gf, tries: S.tryNo || 0, gd: R.gf - R.ga, gk_r: S.xi.GK ? S.xi.GK.r : null };
   return (he ? 'ההישג שלך: ' : 'YOUR MARK: ') + dimDetail(dayDimension(c), r, he) + ' · ' + shortStage(J.finalStage);
 }
 
@@ -1188,6 +1190,7 @@ function buildScoreRow(c, J) {
     stage: J.finalStage, stage_rank: STAGE_RANK[J.finalStage] ?? 0,
     ok: S.challengeOk, metric: markMetric(c), sv: challengeValue(c, J),
     avg, gd: R.gf - R.ga, gf: R.gf, ga: R.ga, tries: S.tryNo || 0,
+    gk_r: S.xi.GK ? S.xi.GK.r : null,
     top_scorer: ms ? String(ms.name).slice(0, 40) : null,
     top_scorer_g: ms ? ms.n : null,
     top_scorer_rank: ms ? ms.rank : null,
