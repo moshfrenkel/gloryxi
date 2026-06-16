@@ -32,13 +32,13 @@ const D = {
                       he: (n) => 'נכתב על ידי ' + n + ', כתב ה-AI של GloryXI. עלול להכיל אי-דיוקים, תמיד כדאי להצליב מול המקורות למטה.' },
 
   // daily leaderboard
-  lb_label:   { en: "JOIN TODAY'S BOARD — PICK A NICKNAME", he: 'הצטרף לטבלה של היום, בחר כינוי' },
-  lb_ph:      { en: 'Your nickname', he: 'הכינוי שלך' },
-  lb_save:    { en: 'ADD ME TO THE BOARD', he: 'תוסיפו אותי לטבלה' },
+  lb_label:   { en: 'NAME THIS RUN FOR THE BOARD', he: 'תן שם לריצה הזו על הלוח' },
+  lb_ph:      { en: 'Name this run', he: 'שם לריצה' },
+  lb_save:    { en: 'SAVE THE NAME', he: 'שמור את השם' },
   lb_note:    { en: "Saved only if you choose to enter: a nickname + your result, shown on the daily board to all players (EU server). Pick a name that doesn't identify you. No tracking. Deleted when the tournament ends.",
                 he: 'נשמרים רק אם תבחר להיכנס: כינוי + התוצאה, שמוצגים בטבלה היומית לכל השחקנים (שרת באירופה). בחר כינוי שלא מזהה אותך. בלי מעקב. נמחק בסוף הטורניר.' },
-  lb_sent:    { en: (n) => 'ON THE DAILY BOARD AS ' + n, he: (n) => 'נשלחת לטבלה היומית בתור ' + n },
-  lb_change:  { en: 'change nickname', he: 'שנה כינוי' },
+  lb_sent:    { en: (n) => 'ENTERING THE BOARD AS ' + n, he: (n) => 'נכנס לטבלה בתור ' + n },
+  lb_change:  { en: 'rename this run', he: 'שנה שם לריצה' },
   lb_today:   { en: "TODAY'S BOARD &#8594;", he: 'הטבלה של היום &#8592;' },
   lb_view:    { en: 'SEE THE DAILY BOARD &#8594;', he: 'לטבלה היומית &#8592;' },
   lb_board_title: { en: 'DAILY BOARD', he: 'הטבלה היומית' },
@@ -46,7 +46,7 @@ const D = {
   lb_empty:   { en: 'No scores yet today. Be the first on the board.', he: 'עוד אין תוצאות היום. היה הראשון על הלוח.' },
   lb_error:   { en: 'Board unavailable right now. Try again later.', he: 'הטבלה לא זמינה כרגע. נסה שוב מאוחר יותר.' },
   lb_you:     { en: 'YOU', he: 'אתה' },
-  lb_players: { en: (n) => n + (n === 1 ? ' player today' : ' players today'), he: (n) => n + ' שחקנים שיחקו היום' },
+  lb_players: { en: (n) => n + (n === 1 ? ' run today' : ' runs today'), he: (n) => n + ' ריצות היום' },
 
   // How-to overlay
   ht_title:   { en: 'HOW TO PLAY', he: 'איך משחקים' },
@@ -154,6 +154,7 @@ const D = {
 
   // daily challenge
   daily_btn:  { en: (n) => 'DAILY CHALLENGE · DAY ' + n, he: (n) => 'האתגר היומי · יום ' + n },
+  daily_kicker:{ en: 'THE FUN MODE · A FRESH ONE EVERY DAY', he: 'המצב הכי כיף · אתגר חדש כל יום' },
   daily_title:{ en: 'THE DAILY CHALLENGE', he: 'האתגר היומי' },
   daily_big:  { en: 'ONE A DAY.<br>UNTIL THE FINAL.', he: 'אחד ביום.<br>עד הגמר.' },
   daily_sub:  { en: '39 DAYS · ONLY TODAY IS OPEN · PROOF GOES TO THE GROUP', he: '39 ימים · רק היום פתוח · ההוכחה בקבוצה' },

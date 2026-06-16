@@ -117,6 +117,8 @@ function surname(name) {
 
 // ── screen switching ──────────────────────────────────────────────────────────
 function show(id) {
+  // leaving the result screen commits your run to the daily board (once, final name).
+  if (id !== 's6') { const s6 = $('s6'); if (s6 && s6.classList.contains('active') && typeof flushPendingRun === 'function') flushPendingRun(); }
   document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
   $(id).classList.add('active');
 }
@@ -1205,26 +1207,63 @@ function markSent(nick) {
   $('lb-sent').hidden = false; $('lb-change').hidden = false; $('lb-setnick').hidden = true;
 }
 
+// the board is a board of RUNS: every finished run is its own line. we remember the
+// row ids this device created so we can highlight all of ours.
+const MYROWS_KEY = 'gxi_my_rows';
+function myRowIds(date) {
+  try { const all = JSON.parse(localStorage.getItem(MYROWS_KEY) || '{}'); return new Set(all[date] || []); }
+  catch (_) { return new Set(); }
+}
+function rememberMyRow(date, id) {
+  try {
+    const all = JSON.parse(localStorage.getItem(MYROWS_KEY) || '{}');
+    const arr = all[date] || [];
+    if (!arr.includes(id)) arr.push(id);
+    all[date] = arr; localStorage.setItem(MYROWS_KEY, JSON.stringify(all));
+  } catch (_) { /* private mode — skip */ }
+}
+
+// A finished run is submitted exactly ONCE, when you leave the result screen, using
+// the final name you chose. So you can rename it freely after seeing your result and
+// it still lands as a single line (the backend only allows inserts, not edits).
+let lbSubmitPromise = null;
+function flushPendingRun() {
+  const p = S.lbPending;
+  if (!p || S.lbSubmitted) return lbSubmitPromise || Promise.resolve();
+  S.lbSubmitted = true;
+  if (!p.name) return Promise.resolve();
+  const row = { ...p.row, nick: p.name };
+  lbSubmitPromise = submitDailyScore(row).then(rec => {
+    if (rec && rec.id != null) { S.lbRowId = rec.id; rememberMyRow(p.date, rec.id); }
+  });
+  track('lb_submit', { day: p.day });
+  return lbSubmitPromise;
+}
+
 function renderLeaderboardRow(c, J) {
   const row = $('lb-row');
   if (!row) return;
   if (!c || !lbConfigured()) { row.hidden = true; return; }   // feature off until backend configured
   row.hidden = false;
   $('lb-view').hidden = false;
-  const nick = getNick();
-  if (nick) { submitDailyScore(buildScoreRow(c, J)); markSent(nick); }
+  // snapshot the run now (survives a later resetGame); the name defaults to the XI you
+  // played with and you can rename it before leaving the screen.
+  S.lbRowId = null; S.lbSubmitted = false; lbSubmitPromise = null;
+  const name = (S.teamName || getNick() || '').trim().slice(0, 20);
+  S.lbPending = { row: buildScoreRow(c, J), date: c.date, day: c.d, name };
+  if (name) { setNick(name); markSent(name); }
   else { $('lb-sent').hidden = true; $('lb-change').hidden = true; $('lb-setnick').hidden = false; $('lb-nick').value = ''; }
 }
 
 // ── in-app live leaderboard ───────────────────────────────────────────────────
 // ranking order = met the daily rule, then the challenge magnitude (sv), then
-// furthest, then goal-diff. So the board is the DAILY-CHALLENGE board, not a generic run.
+// furthest, then goal-diff. Every finished RUN is its own line — play 100 times,
+// get 100 lines, each ranked where it lands. No collapsing by name.
 const okRank = (r) => r.ok === true ? 2 : r.ok === false ? 0 : 1;
 const lbCmp = (a, b) => okRank(b) - okRank(a) || (b.sv || 0) - (a.sv || 0) || b.stage_rank - a.stage_rank || b.gd - a.gd;
 function rankBoard(rows) {
-  const best = new Map();
-  for (const r of rows) { const k = (r.nick || '').trim().toLowerCase(); if (!k) continue; if (!best.has(k) || lbCmp(r, best.get(k)) < 0) best.set(k, r); }
-  return { ranked: [...best.values()].sort(lbCmp), count: best.size };
+  const ranked = rows.filter(r => (r.nick || '').trim()).sort(lbCmp);
+  return { ranked, count: ranked.length };
 }
 async function openBoard(c, ret) {
   if (!c || !lbConfigured()) return;
@@ -1234,16 +1273,17 @@ async function openBoard(c, ret) {
   $('board-list').innerHTML = '';
   const st = $('board-state'); st.hidden = false; st.textContent = t('lb_loading');
   show('s-board');
+  await flushPendingRun();   // make sure a just-finished run is in before we read the board
   const rows = await fetchBoard(c.date);
   if (rows === null) { st.textContent = t('lb_error'); return; }
   const { ranked, count } = rankBoard(rows);
   if (!ranked.length) { st.textContent = t('lb_empty'); return; }
   st.hidden = true;
   const dim = dayDimension(c), he = getLang() === 'he';
-  const me = getNick().trim().toLowerCase();
+  const myRows = myRowIds(c.date);
   const list = $('board-list');
   ranked.forEach((r, i) => {
-    const mine = me && (r.nick || '').trim().toLowerCase() === me;
+    const mine = r.id != null && myRows.has(r.id);
     const li = document.createElement('li');
     li.className = 'board-li' + (mine ? ' me' : '');
     const rank = document.createElement('span'); rank.className = 'b-rank'; rank.textContent = i + 1;
@@ -1393,6 +1433,7 @@ function resetGame() {
   S.draw = null;
   S.journey = null;
   S.tryNo = 0;
+  S.lbRowId = null;
   S.spinning = false;
   S.feedIdx = 0; S.matchNo = 0; S.printing = false;
   $('s6').classList.remove('champion');
@@ -1469,8 +1510,18 @@ function chGist(c)  { return (getLang() === 'he' ? c.g_he : c.g_en) || ''; }
 function updateDailyBtn() {
   const c = todayChallenge();
   const btn = $('daily-btn');
-  if (c) { btn.hidden = false; $('daily-btn-label').textContent = t('daily_btn', c.d); }
-  else btn.hidden = true;
+  const start = $('btn-start');
+  // when today's challenge is live it becomes the hero CTA and KICK OFF steps back,
+  // so newcomers land on the fun mode first.
+  if (c) {
+    btn.hidden = false;
+    $('daily-btn-label').textContent = t('daily_btn', c.d);
+    $('daily-btn-kicker').textContent = t('daily_kicker');
+    if (start) { start.classList.remove('slab-hot'); start.classList.add('slab-line'); }
+  } else {
+    btn.hidden = true;
+    if (start) { start.classList.add('slab-hot'); start.classList.remove('slab-line'); }
+  }
   // direct link to today's leaderboard from home — no need to play first
   const bl = $('home-board-link');
   if (bl) {
@@ -1762,14 +1813,19 @@ function wire() {
   $('lb-save').addEventListener('click', () => {
     const v = setNick($('lb-nick').value);
     if (!v) { $('lb-nick').focus(); return; }
-    if (S.challenge && S.journey) { submitDailyScore(buildScoreRow(S.challenge, S.journey)); track('lb_submit', { day: S.challenge.d }); }
+    // stage the final name; the run is submitted once when you leave the screen.
+    if (S.lbPending && !S.lbSubmitted) S.lbPending.name = v;
+    else if (S.challenge && S.journey && !S.lbSubmitted) S.lbPending = { row: buildScoreRow(S.challenge, S.journey), date: S.challenge.date, day: S.challenge.d, name: v };
     markSent(v);
   });
   $('lb-nick').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('lb-save').click(); } });
   $('lb-change').addEventListener('click', () => {
-    setNick(''); $('lb-sent').hidden = true; $('lb-change').hidden = true;
-    $('lb-setnick').hidden = false; $('lb-nick').value = ''; $('lb-nick').focus();
+    $('lb-sent').hidden = true; $('lb-change').hidden = true;
+    $('lb-setnick').hidden = false; $('lb-nick').value = getNick();
+    $('lb-nick').focus(); $('lb-nick').select();
   });
+  // closing the tab on the result screen still commits the run (keepalive insert).
+  window.addEventListener('pagehide', () => { flushPendingRun(); });
   $('lb-view').addEventListener('click', () => openBoard(S.challenge, 's6'));
   $('daily-board-link').addEventListener('click', () => openBoard(todayChallenge(), 's-daily'));
   $('home-board-link').addEventListener('click', () => { openBoard(todayChallenge(), 's1'); track('board_open', { from: 'home' }); });

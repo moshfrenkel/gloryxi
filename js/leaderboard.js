@@ -25,10 +25,11 @@ export async function fetchBoard(gameDate) {
   } catch (_) { return null; }
 }
 
-// fire-and-forget; never throws, never blocks gameplay
+// fire-and-forget insert; never throws, never blocks gameplay.
+// returns the created row (with its id) so the caller can rename it in place, or null.
 export async function submitDailyScore(row) {
   const c = cfg();
-  if (!c.supaUrl || !c.supaKey || !row || !row.nick) return false;
+  if (!c.supaUrl || !c.supaKey || !row || !row.nick) return null;
   try {
     const r = await fetch(c.supaUrl.replace(/\/+$/, '') + '/rest/v1/daily_scores', {
       method: 'POST',
@@ -36,11 +37,13 @@ export async function submitDailyScore(row) {
         'apikey': c.supaKey,
         'Authorization': 'Bearer ' + c.supaKey,
         'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
+        'Prefer': 'return=representation',
       },
       body: JSON.stringify(row),
       keepalive: true,
     });
-    return r.ok;
-  } catch (_) { return false; }
+    if (!r.ok) return null;
+    const data = await r.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (_) { return null; }
 }
