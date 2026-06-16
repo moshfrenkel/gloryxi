@@ -103,9 +103,34 @@ export function computeTeamScores(xi) {
   return { defense, midfield, attack, defenseEff, midfieldEff, attackEff, avgRating };
 }
 
-export function computeTeamElo(xi) {
+// Default blend = the calibrated 0.40 / 0.35 / 0.25 (attack / defense / midfield).
+// A mentality passes its own {wa,wd,wm} (weights always sum to 1) to tilt the blend
+// toward where the XI is strong. No arg → identical to the pre-mentality engine.
+const BALANCED_BLEND = { wa: 0.40, wd: 0.35, wm: 0.25 };
+
+export function computeTeamElo(xi, blend) {
   const { attackEff, defenseEff, midfieldEff } = computeTeamScores(xi);
-  return ELO_BASE + ELO_SCALE * (0.40 * attackEff + 0.35 * defenseEff + 0.25 * midfieldEff);
+  const b = blend || BALANCED_BLEND;
+  return ELO_BASE + ELO_SCALE * (b.wa * attackEff + b.wd * defenseEff + b.wm * midfieldEff);
+}
+
+// ─── Mentality: continuous slider 0..1 → blend weights + match tempo ────────────
+// 0 = full bunker, 0.5 = balanced (today's engine), 1 = all-out attack. Piecewise
+// linear through three anchors so the slider feels smooth. `tempo` multiplies BOTH
+// sides' expected goals in the user's match: low = closed game (more draws → more
+// shootouts, the underdog's tool), high = open game (more goals, favours the favourite).
+const MENT_ANCHORS = [
+  { at: 0.0, wa: 0.20, wd: 0.55, wm: 0.25, tempo: 0.70 }, // bunker
+  { at: 0.5, wa: 0.40, wd: 0.35, wm: 0.25, tempo: 1.00 }, // balanced
+  { at: 1.0, wa: 0.62, wd: 0.15, wm: 0.23, tempo: 1.35 }, // all-out
+];
+export function mentalityAt(v) {
+  const x = Math.min(Math.max(typeof v === 'number' ? v : 0.5, 0), 1);
+  const lo = x <= 0.5 ? MENT_ANCHORS[0] : MENT_ANCHORS[1];
+  const hi = x <= 0.5 ? MENT_ANCHORS[1] : MENT_ANCHORS[2];
+  const f = (x - lo.at) / (hi.at - lo.at);
+  const mix = (a, b) => a + (b - a) * f;
+  return { v: x, wa: mix(lo.wa, hi.wa), wd: mix(lo.wd, hi.wd), wm: mix(lo.wm, hi.wm), tempo: mix(lo.tempo, hi.tempo) };
 }
 
 // ─── Poisson ──────────────────────────────────────────────────────────────────
@@ -162,10 +187,10 @@ function _goalTendency(p) {
   return Math.min(Math.max(mul, TEND_MIN), TEND_MAX);
 }
 
-export function simulateMatch(eloA, eloB, playersA, playersB) {
+export function simulateMatch(eloA, eloB, playersA, playersB, tempo = 1) {
   const d = (eloA - eloB) / 400;
-  const scoreA = poissonSample(expGoals(d));
-  const scoreB = poissonSample(expGoals(-d));
+  const scoreA = poissonSample(expGoals(d) * tempo);
+  const scoreB = poissonSample(expGoals(-d) * tempo);
   const scorers = [];
   const scorersB = [];
   if (playersA && playersA.length > 0) _sampleScorers(scoreA, playersA, scorers, 90);
@@ -173,10 +198,10 @@ export function simulateMatch(eloA, eloB, playersA, playersB) {
   return { scoreA, scoreB, scorers, scorersB, note: '', winnerIsA: scoreA > scoreB };
 }
 
-export function simulateKnockout(eloA, eloB, playersA, playersB) {
+export function simulateKnockout(eloA, eloB, playersA, playersB, tempo = 1) {
   const d = (eloA - eloB) / 400;
-  let scoreA = poissonSample(expGoals(d));
-  let scoreB = poissonSample(expGoals(-d));
+  let scoreA = poissonSample(expGoals(d) * tempo);
+  let scoreB = poissonSample(expGoals(-d) * tempo);
   let note = '';
   const scorers = [];
   const scorersB = [];
@@ -184,8 +209,8 @@ export function simulateKnockout(eloA, eloB, playersA, playersB) {
   if (playersB && playersB.length > 0) _sampleScorers(scoreB, playersB, scorersB, 90);
 
   if (scoreA === scoreB) {
-    const etA = poissonSample(expGoals(d) * 0.33);
-    const etB = poissonSample(expGoals(-d) * 0.33);
+    const etA = poissonSample(expGoals(d) * 0.33 * tempo);
+    const etB = poissonSample(expGoals(-d) * 0.33 * tempo);
     scoreA += etA; scoreB += etB;
     if (playersA && playersA.length > 0 && etA > 0) _sampleScorers(etA, playersA, scorers, 120);
     if (playersB && playersB.length > 0 && etB > 0) _sampleScorers(etB, playersB, scorersB, 120);
@@ -620,6 +645,215 @@ export function buildOpponentXi(squad) {
     n: p.name || slot, p: p.p || _slotToPos(slot), r: p.r || 50,
     sp: p.sp, slot, g: p.g, caps: p.caps, aw: p.aw,
   }));
+}
+
+// ─── Interactive per-match tournament controller ──────────────────────────────
+// Same field, bracket and primitives as simulateTournament, but the USER's matches
+// are played one at a time so a per-match mentality can be chosen. simulateTournament
+// (the selftest / calibration path) is left untouched; balanced play here is
+// distribution-equivalent to it (verified by _verify-mentality.mjs).
+//
+// Usage:
+//   const ctrl = createTournament(xi, field2026, squads);
+//   let ctx = ctrl.next();                 // { stage, opponent, oppElo, oppXi, read, matchNo } | null
+//   const m = ctrl.play(mentalityAt(0.7)); // simulate that match with the chosen mentality
+//   ...repeat until ctrl.next() === null...
+//   const result = ctrl.finish();          // same shape simulateTournament returns
+export function createTournament(xi, field2026, squads) {
+  const normXi = _normaliseXi(xi);
+  const basePlayers = _xiToPlayers(normXi);
+  const userEloBalanced = computeTeamElo(normXi); // for the opponent-strength read (slider-independent)
+  const { groups, groupKey, replaced } = _placeUser(field2026);
+  const getElo = t => t === 'USER_XI' ? userEloBalanced : (field2026.strengths[t] || 1700);
+
+  const _oppXiCache = new Map();
+  const oppPlayers = team => {
+    if (team === 'USER_XI') return basePlayers;
+    if (!squads || !squads[team]) return null;
+    if (!_oppXiCache.has(team)) _oppXiCache.set(team, buildOpponentXi(squads[team]));
+    return _oppXiCache.get(team);
+  };
+  const oppXiObject = team => (!squads || !squads[team]) ? null : buildOpponentXiObject(squads[team]);
+
+  const journey = [];
+  const record = { w: 0, d: 0, l: 0, gf: 0, ga: 0 };
+  const tally = {};
+  const _bump = (name, team, key) => { const k = name + '|' + team; (tally[k] || (tally[k] = { name, team, goals: 0, assists: 0 }))[key]++; };
+  const _tallyGoals = (list, team) => { for (const s of (list || [])) { _bump(s.name, team, 'goals'); if (s.assist) _bump(s.assist, team, 'assists'); } };
+
+  // ── set up every group; play all NON-user matches now (mentality-independent) ──
+  const tables = {};
+  const userOpps = [];
+  for (const [key, members] of Object.entries(groups)) {
+    const table = {};
+    for (const t of members) table[t] = { team: t, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
+    for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) {
+      const A = members[i], B = members[j];
+      if (A === 'USER_XI' || B === 'USER_XI') { if (key === groupKey) userOpps.push(A === 'USER_XI' ? B : A); continue; }
+      const m = simulateMatch(getElo(A), getElo(B), oppPlayers(A), oppPlayers(B));
+      _applyResult(table[A], table[B], m.scoreA, m.scoreB);
+      _tallyGoals(m.scorers, A); _tallyGoals(m.scorersB, B);
+    }
+    tables[key] = table; // sorted later, once the user's group is complete
+  }
+
+  const sortTable = (t) => Object.values(t).sort((a, b) =>
+    b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || Math.random() - 0.5);
+
+  // ── state ──
+  let phase = 'group';      // 'group' | 'knockout' | 'done'
+  let groupPlayed = 0;
+  let userMatchNo = 0;
+  let pending = null;       // upcoming user match context
+  let base = null;          // { rank, groupTable } filled after groups
+  let finalStage = null;
+  // knockout
+  let seed = null, thirdAlloc = null, path = null, koStep = 0;
+  const winners = {};
+
+  const readOf = (oElo) => {
+    const d = userEloBalanced - oElo;
+    return { label: d >= 60 ? 'favorite' : d <= -60 ? 'underdog' : 'even', you: Math.round(userEloBalanced), opp: Math.round(oElo), edge: Math.round(d) };
+  };
+
+  function resolveWinner(mnum) {
+    if (winners[mnum]) return winners[mnum];
+    const x32 = BRACKET_R32.find(e => e.m === mnum);
+    if (x32) {
+      const teamA = seed[x32.a];
+      const teamB = x32.b.startsWith('3:') ? tables[thirdAlloc.get(x32.m)][2].team : seed[x32.b];
+      const m = simulateKnockout(getElo(teamA), getElo(teamB), oppPlayers(teamA), oppPlayers(teamB));
+      _tallyGoals(m.scorers, teamA); _tallyGoals(m.scorersB, teamB);
+      return winners[mnum] = m.winnerIsA ? teamA : teamB;
+    }
+    const xl = BRACKET_LATER.find(e => e.m === mnum);
+    const wa = resolveWinner(xl.a), wb = resolveWinner(xl.b);
+    const m = simulateKnockout(getElo(wa), getElo(wb), oppPlayers(wa), oppPlayers(wb));
+    _tallyGoals(m.scorers, wa); _tallyGoals(m.scorersB, wb);
+    return winners[mnum] = m.winnerIsA ? wa : wb;
+  }
+
+  function buildBracket() {
+    seed = {};
+    for (const [g, t] of Object.entries(tables)) { seed['1' + g] = t[0].team; seed['2' + g] = t[1].team; }
+    const thirds = Object.entries(tables).map(([g, rws]) => ({ g, ...rws[2] }))
+      .sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || Math.random() - 0.5);
+    const qualifiedThirdGroups = thirds.slice(0, 8).map(t => t.g);
+    thirdAlloc = _allocateThirds(qualifiedThirdGroups);
+    return { qualifiedThirdGroups };
+  }
+
+  // only valid once the user has advanced: find the user's R32 match, then climb
+  // the bracket to the final to fix the sequence of stages the user must play.
+  function buildUserPath() {
+    const teamsOf = (e) => [seed[e.a], e.b.startsWith('3:') ? tables[thirdAlloc.get(e.m)][2].team : seed[e.b]];
+    const r32 = BRACKET_R32.find(e => teamsOf(e).includes('USER_XI'));
+    path = [{ m: r32.m, stage: 'R32' }];
+    let cur = r32.m;
+    while (cur !== 104) {
+      const nxt = BRACKET_LATER.find(e => e.a === cur || e.b === cur);
+      if (!nxt) break;
+      path.push({ m: nxt.m, stage: nxt.stage });
+      cur = nxt.m;
+    }
+  }
+
+  function prepareKnockout() {
+    const step = path[koStep];
+    let opp;
+    if (step.stage === 'R32') {
+      const e = BRACKET_R32.find(x => x.m === step.m);
+      const teamA = seed[e.a];
+      const teamB = e.b.startsWith('3:') ? tables[thirdAlloc.get(e.m)][2].team : seed[e.b];
+      opp = teamA === 'USER_XI' ? teamB : teamA;
+    } else {
+      const e = BRACKET_LATER.find(x => x.m === step.m);
+      const prevM = path[koStep - 1].m;
+      opp = resolveWinner(e.a === prevM ? e.b : e.a);
+    }
+    userMatchNo++;
+    pending = { stage: step.stage, opponent: opp, oppElo: getElo(opp), oppXi: oppXiObject(opp), read: readOf(getElo(opp)), matchNo: userMatchNo, matchM: step.m };
+  }
+
+  function finalizeGroups() {
+    for (const key of Object.keys(tables)) tables[key] = sortTable(tables[key]);
+    const rows = tables[groupKey];
+    const rank = rows.findIndex(r => r.team === 'USER_XI') + 1;
+    base = { rank, groupTable: rows.map(r => ({ ...r })) };
+    const { qualifiedThirdGroups } = buildBracket();
+    const advanced = rank <= 2 || (rank === 3 && qualifiedThirdGroups.includes(groupKey));
+    if (!advanced) { finalStage = 'GROUP_EXIT'; phase = 'done'; pending = null; return; }
+    buildUserPath();
+    phase = 'knockout'; koStep = 0; prepareKnockout();
+  }
+
+  function prepareGroup() {
+    const opp = userOpps[groupPlayed];
+    userMatchNo++;
+    pending = { stage: 'GROUP', opponent: opp, oppElo: getElo(opp), oppXi: oppXiObject(opp), read: readOf(getElo(opp)), matchNo: userMatchNo, groupNo: groupPlayed + 1 };
+  }
+
+  function finishField() { resolveWinner(104); } // complete the bracket for the tournament-wide tally
+
+  function finishPayload() {
+    const _ranked = (key) => Object.values(tally).filter(x => x[key] > 0)
+      .sort((a, b) => b[key] - a[key] || (b.goals + b.assists) - (a.goals + a.assists));
+    const _myBest = (list, key) => { const i = list.findIndex(s => s.team === 'USER_XI'); return i < 0 ? null : { name: list[i].name, n: list[i][key], rank: i + 1 }; };
+    const sc = _ranked('goals'), as = _ranked('assists');
+    return {
+      journey, record, groupKey, replaced, rank: base ? base.rank : 0, groupTable: base ? base.groupTable : [],
+      finalStage, topScorers: sc.slice(0, 10), topAssisters: as.slice(0, 10),
+      myBestScorer: _myBest(sc, 'goals'), myBestAssister: _myBest(as, 'assists'),
+    };
+  }
+
+  prepareGroup(); // first group match ready
+
+  return {
+    groupKey, replaced,
+    groupOpponents: userOpps.slice(),
+    get done() { return phase === 'done'; },
+    next() { return phase === 'done' ? null : pending; },
+    play(ment) {
+      if (!pending) return null;
+      const m = (ment && typeof ment === 'object') ? ment : mentalityAt(0.5);
+      const blend = { wa: m.wa, wd: m.wd, wm: m.wm };
+      const tempo = m.tempo;
+      const uElo = computeTeamElo(normXi, blend);
+      const opp = pending.opponent;
+      if (pending.stage === 'GROUP') {
+        const r = simulateMatch(uElo, getElo(opp), basePlayers, oppPlayers(opp), tempo);
+        _applyResult(tables[groupKey]['USER_XI'], tables[groupKey][opp], r.scoreA, r.scoreB);
+        record.gf += r.scoreA; record.ga += r.scoreB;
+        if (r.scoreA > r.scoreB) record.w++; else if (r.scoreA === r.scoreB) record.d++; else record.l++;
+        _tallyGoals(r.scorers, 'USER_XI'); _tallyGoals(r.scorersB, opp);
+        const entry = { stage: 'GROUP', opponent: opp, scoreFor: r.scoreA, scoreAgainst: r.scoreB, scorers: r.scorers, opponentScorers: r.scorersB || [], note: '', mentality: m.v };
+        const ox = oppXiObject(opp); if (ox) entry.opponentXi = ox;
+        journey.push(entry);
+        groupPlayed++;
+        if (groupPlayed >= 3) finalizeGroups(); else prepareGroup();
+        return entry;
+      }
+      // knockout
+      const r = simulateKnockout(uElo, getElo(opp), basePlayers, oppPlayers(opp), tempo);
+      _tallyGoals(r.scorers, 'USER_XI'); _tallyGoals(r.scorersB, opp);
+      record.gf += r.scoreA; record.ga += r.scoreB;
+      if (r.winnerIsA) record.w++; else if (r.note.startsWith('(pens')) record.d++; else record.l++;
+      const entry = { stage: pending.stage, opponent: opp, scoreFor: r.scoreA, scoreAgainst: r.scoreB, scorers: r.scorers, opponentScorers: r.scorersB || [], note: r.note, winnerIsA: r.winnerIsA, mentality: m.v };
+      const ox = oppXiObject(opp); if (ox) entry.opponentXi = ox;
+      journey.push(entry);
+      winners[pending.matchM] = r.winnerIsA ? 'USER_XI' : opp;
+      if (r.winnerIsA) {
+        koStep++;
+        if (koStep >= path.length) { finalStage = 'CHAMPION'; phase = 'done'; finishField(); }
+        else prepareKnockout();
+      } else {
+        finalStage = pending.stage; phase = 'done'; finishField();
+      }
+      return entry;
+    },
+    finish() { return finishPayload(); },
+  };
 }
 
 // ─── selftest ─────────────────────────────────────────────────────────────────

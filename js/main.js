@@ -4,7 +4,7 @@
    Mechanics: auto-spin (no hold), pick any player then a free compatible slot,
    ratings always visible, one player per country, 1 team-skip + 1 year-skip. */
 
-import { simulateTournament, computeTeamScores, computeTeamElo, buildOpponentXiObject } from './sim.js';
+import { createTournament, mentalityAt, computeTeamScores, computeTeamElo, buildOpponentXiObject } from './sim.js';
 import { shareResult, shareStory } from './share.js';
 import { t, getLang, setLang, applyStatic } from './i18n.js';
 import { kitFor, jerseySVG } from './kits.js';
@@ -692,25 +692,44 @@ function runTournament() {
     const sq = S.squads.get(country + '|2026');
     if (sq && sq.length >= 11) squads[country] = sq;
   }
-  S.journey = simulateTournament(xiSim, S.field, squads);
+  // interactive per-match controller — the user picks a mentality before each match
+  S.ctrl = createTournament(xiSim, S.field, squads);
+  S.journey = null;
+  if (typeof S.mentality !== 'number') S.mentality = 0.5; // default balanced; remembers last drag within a run
 
   show('s5');
   const feed = $('printer-feed');
   feed.innerHTML = '';
   addLine('faint', t('feed_open'));
-  const J0 = S.journey;
-  addLine('gold', t('takes_place', S.teamName, J0.replaced, J0.groupKey));
+  addLine('gold', t('takes_place', S.teamName, S.ctrl.replaced, S.ctrl.groupKey));
 
   // strength report — FIFA-style rating panel, so every defeat is explainable
-  const groupOpps = J0.journey.filter(m => m.stage === 'GROUP').map(m => m.opponent);
-  renderStrengthPanel(xiSim, groupOpps);
+  renderStrengthPanel(xiSim, S.ctrl.groupOpponents);
 
-  S.feedIdx = 0;
   S.matchNo = 0;
   S.printing = false;
+  showTactics(true);
+  updateTacticsBar(S.ctrl.next());
   const btn = $('btn-next-match');
   btn.disabled = false;
   btn.textContent = t('run_match', 1);
+}
+
+// ── per-match tactics bar (mentality slider + opponent strength read) ──────────
+function showTactics(on) { const b = $('tactics-bar'); if (b) b.hidden = !on; }
+function mentName(v) {
+  const i = Math.round(Math.min(Math.max(v, 0), 1) * 4); // 0..4 → the 5 presets
+  return t(['ment_bunker', 'ment_def', 'ment_bal', 'ment_atk', 'ment_allout'][i]);
+}
+function updateTacticsBar(ctx) {
+  if (!ctx) { showTactics(false); return; }
+  showTactics(true);
+  const nm = $('tac-opp-name'); if (nm) nm.textContent = ctx.opponent;
+  const rd = $('tac-read');
+  if (rd) { rd.textContent = t('read_' + ctx.read.label); rd.className = 'tac-read t-cap read-' + ctx.read.label; }
+  const sl = $('tac-slider');
+  if (sl) { sl.value = Math.round(S.mentality * 100); sl.setAttribute('aria-valuetext', mentName(S.mentality)); }
+  const cur = $('tac-current'); if (cur) cur.textContent = mentName(S.mentality);
 }
 
 function addLine(cls, text) {
@@ -748,30 +767,32 @@ function esc(s) { return String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<'
 
 function nextMatch() {
   if (S.printing) return;
-  const J = S.journey;
-  if (S.feedIdx >= J.journey.length) { finishTournament(); return; }
+  const ctrl = S.ctrl;
+  const ctx = ctrl && ctrl.next();
+  if (!ctx) { finishTournament(); return; }
   S.printing = true;
   const btn = $('btn-next-match');
   btn.disabled = true;
+  showTactics(false); // lock the approach while the match prints
 
-  const m = J.journey[S.feedIdx];
-  S.feedIdx++;
+  const m = ctrl.play(mentalityAt(S.mentality));
   S.matchNo++;
-  const stageTag = m.stage === 'GROUP' ? t('group_match', S.matchNo, J.groupKey) : stageName(m.stage);
+  const stageTag = m.stage === 'GROUP' ? t('group_match', ctx.groupNo, ctrl.groupKey) : stageName(m.stage);
   const win = m.scoreFor > m.scoreAgainst || (m.note && m.note.startsWith('(pens') && m.winnerIsA);
 
   renderScoreboard(m, stageTag, () => {
     if (m.stage !== 'GROUP' && win) flashWin();
-    const last = S.feedIdx >= J.journey.length;
-    if (last) {
-      if (m.stage === 'GROUP') printGroupTable(J);
+    const nextCtx = ctrl.next();
+    const groupEnded = m.stage === 'GROUP' && (!nextCtx || nextCtx.stage !== 'GROUP');
+    if (groupEnded) printGroupTable(ctrl.finish());
+    if (!nextCtx) {
+      const J = ctrl.finish();
       addLine('verdict', stageVerdict(J.finalStage));
       if (J.finalStage === 'CHAMPION') flashWin();
       btn.textContent = t('full_time');
     } else {
-      const nm = J.journey[S.feedIdx];
-      btn.textContent = nm.stage === 'GROUP' ? t('run_match', S.matchNo + 1) : t('play_stage', stageName(nm.stage));
-      if (m.stage === 'GROUP' && nm.stage !== 'GROUP') printGroupTable(J);
+      updateTacticsBar(nextCtx);
+      btn.textContent = nextCtx.stage === 'GROUP' ? t('run_match', nextCtx.groupNo) : t('play_stage', stageName(nextCtx.stage));
     }
     btn.disabled = false;
     S.printing = false;
@@ -1003,7 +1024,11 @@ function flashWin() {
   setTimeout(() => f.remove(), 650);
 }
 
-function finishTournament() { showResult(); }
+function finishTournament() {
+  if (S.ctrl) S.journey = S.ctrl.finish();
+  showTactics(false);
+  showResult();
+}
 
 // ── stage-2 win conditions — checked from the journey + the XI ────────────────
 const STAGE_RANK = { GROUP_EXIT: 0, R32: 1, R16: 2, QF: 3, SF: 4, F: 5, CHAMPION: 6 };
@@ -1432,10 +1457,12 @@ function resetGame() {
   S.skips = { team: 1, year: 1 };
   S.draw = null;
   S.journey = null;
+  S.ctrl = null;
   S.tryNo = 0;
   S.lbRowId = null;
   S.spinning = false;
   S.feedIdx = 0; S.matchNo = 0; S.printing = false;
+  showTactics(false);
   $('s6').classList.remove('champion');
   renderBoard();
   renderPips();
@@ -1807,6 +1834,12 @@ function wire() {
   $('team-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') lockTeamName(); });
   $('board-close').addEventListener('click', () => show(boardReturn));
   $('btn-next-match').addEventListener('click', nextMatch);
+  const tacSlider = $('tac-slider');
+  if (tacSlider) tacSlider.addEventListener('input', () => {
+    S.mentality = Math.min(Math.max((+tacSlider.value || 0) / 100, 0), 1);
+    const cur = $('tac-current'); if (cur) cur.textContent = mentName(S.mentality);
+    tacSlider.setAttribute('aria-valuetext', mentName(S.mentality));
+  });
   $('group-cta').addEventListener('click', () => track('group_join', { from: 'result' }));
   $('daily-group-link').addEventListener('click', () => track('group_join', { from: 'board' }));
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });

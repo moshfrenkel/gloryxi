@@ -303,6 +303,23 @@
     <div class="hint-line t-cap" data-i18n="s5_hint">TAP THE BUTTON TO PLAY EACH MATCH</div>
   </div>
   <div id="printer-feed" role="log" aria-live="polite"></div>
+  <div id="tactics-bar" hidden>
+    <div class="tac-opp">
+      <span class="tac-vs t-cap" data-i18n="tac_vs">NEXT</span>
+      <span id="tac-opp-name" class="tac-opp-name" dir="auto"></span>
+      <span id="tac-read" class="tac-read t-cap"></span>
+    </div>
+    <input id="tac-slider" class="tac-slider" type="range" min="0" max="100" value="50" step="1"
+           aria-label="match approach" aria-valuetext="balanced">
+    <div class="tac-ticks t-cap">
+      <span data-i18n="ment_bunker">BUNKER</span>
+      <span data-i18n="ment_def">DEFENSIVE</span>
+      <span data-i18n="ment_bal">BALANCED</span>
+      <span data-i18n="ment_atk">ATTACKING</span>
+      <span data-i18n="ment_allout">ALL-OUT</span>
+    </div>
+    <div id="tac-current" class="tac-current"></div>
+  </div>
   <button id="btn-next-match" class="slab slab-hot">RUN MATCH 1</button>
 </div>
 
