@@ -1532,7 +1532,8 @@ function showResult() {
   const avg = Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
   $('verdict-avg').textContent = t('avg_rating', avg);
   // GloryScore + "your best today" — every run is a score that can be beaten (move 5)
-  const gScore = boardScore({ stage: J.finalStage, gd: R.gf - R.ga, day: S.challenge ? S.challenge.d : 0, avg });
+  const dayN = S.challenge ? S.challenge.d : 0;
+  const gScore = boardScore({ stage: J.finalStage, gd: R.gf - R.ga, day: dayN, avg });
   const { best, isNew } = recordGloryBest(_todayIso(), gScore);
   const gEl = $('verdict-glory');
   if (gEl) {
@@ -1542,6 +1543,20 @@ function showResult() {
     const bst = document.createElement('span'); bst.className = 'vg-best t-cap' + (isNew ? ' vg-new' : '');
     bst.textContent = isNew ? t('gs_new') : t('gs_best', best);
     gEl.append(lab, val, bst);
+    // Day 9 "Worst Average": surface the weakness multiplier so the boost is visible,
+    // not silent — otherwise the player sees only a bigger number with no reason why.
+    if (dayN === 9) {
+      const he = getLang() === 'he';
+      const mult = weaknessMult(avg);
+      const base = gloryScore({ stage: J.finalStage, gd: R.gf - R.ga });
+      const chip = document.createElement('span');
+      chip.className = 'vg-mult t-cap' + (mult > 1 ? ' vg-mult-on' : '');
+      chip.textContent = mult > 1
+        ? (he ? 'בונוס הרכב חלש  ' + base + ' ×' + mult.toFixed(2) + ' = ' + gScore
+              : 'WEAK-XI BONUS  ' + base + ' ×' + mult.toFixed(2) + ' = ' + gScore)
+        : (he ? 'אין בונוס חולשה (ממוצע 80+)' : 'NO WEAK-XI BONUS (AVG 80+)');
+      gEl.append(chip);
+    }
     gEl.hidden = false;
   }
   const sl = $('scoring-link'); if (sl) sl.hidden = false;
@@ -1732,6 +1747,7 @@ function drawSwapOptions(slot) {
 }
 
 function showSwap() {
+  if (!canReplay()) return; // cap enforced in logic too, not only by hiding the button
   show('s-swap');
   const he = getLang() === 'he';
   const sc = computeTeamScores(S.xi);

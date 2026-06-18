@@ -1386,6 +1386,11 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 #s6.champion .vg-val { color: var(--ink); }
 #s6.champion .vg-lab, #s6.champion .vg-best { color: rgba(16,16,16,0.6); }
 #s6.champion .vg-best.vg-new { color: var(--ink); font-weight: 800; }
+/* Day 9 weakness multiplier, surfaced on its own line under the GloryScore */
+.vg-mult { flex-basis: 100%; font-size: 10px; letter-spacing: 0.08em; color: var(--grey); margin-top: 2px; }
+.vg-mult.vg-mult-on { color: var(--gold); font-weight: 700; }
+#s6.champion .vg-mult { color: rgba(16,16,16,0.6); }
+#s6.champion .vg-mult.vg-mult-on { color: var(--ink); }
 
 .board-best { color: var(--hot); margin: 4px 0 0; letter-spacing: 0.1em; font-weight: 700; }
 .board-best[hidden] { display: none; }
@@ -1407,6 +1412,10 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 .loss-peak { color: var(--bone); font-weight: 700; border-inline-start-color: var(--gold); }
 .loss-weak { color: var(--warn); border-inline-start-color: var(--warn); }
 .btn-swap { margin-top: 14px; }
+/* .slab sets display:block (line ~223), which overrides the [hidden] UA default,
+   so a hidden slab button stayed visible — this is what let the run-it-back cap be
+   bypassed (swap button never actually disappeared). Also fixes the daily CTA. */
+.slab[hidden] { display: none; }
 
 #s-swap { padding-bottom: 0; }
 .swap-head { padding: 8px 22px 2px; flex-shrink: 0; }
