@@ -1148,6 +1148,15 @@ const STAGE_RANK = { GROUP_EXIT: 0, R32: 1, R16: 2, QF: 3, SF: 4, F: 5, CHAMPION
 const GLORY_PTS = { GROUP_EXIT: 0, R32: 10, R16: 25, QF: 50, SF: 90, F: 140, CHAMPION: 200 };
 const gloryScore = (r) => (GLORY_PTS[r.stage] ?? 0) + (r.gd || 0);
 
+// ── Day 9 "Worst Average": weakest XI that runs furthest. The board score scales
+// GloryScore by how weak the XI is, so depth is still required (a weak side that
+// loses early scores almost nothing) while a weak side that runs deep leaps over a
+// strong one at the same stage. Every 40 average-rating points below 80 doubles the
+// score; only this day scales — every other day stays plain GloryScore.
+const WEAK_BASE = 80, WEAK_SPAN = 40;
+const weaknessMult = (avg) => 1 + Math.max(0, WEAK_BASE - (avg || WEAK_BASE)) / WEAK_SPAN;
+const boardScore = (r) => r.day === 9 ? Math.round(gloryScore(r) * weaknessMult(r.avg)) : gloryScore(r);
+
 // "Your best today" — the day's top GloryScore, kept per ISO date in localStorage.
 const GLORY_BEST_KEY = 'gxi_glory_best';
 function gloryBest(date) {
@@ -1423,7 +1432,7 @@ function renderLeaderboardRow(c, J) {
 const okRank = (r) => r.ok === true ? 2 : r.ok === false ? 0 : 1;
 // position-primary: GloryScore first (stage dominates, gd breaks within-stage ties),
 // then met-the-rule, then the day's special magnitude, then raw goal-diff.
-const lbCmp = (a, b) => gloryScore(b) - gloryScore(a) || okRank(b) - okRank(a) || (b.sv || 0) - (a.sv || 0) || b.gd - a.gd;
+const lbCmp = (a, b) => boardScore(b) - boardScore(a) || okRank(b) - okRank(a) || (b.sv || 0) - (a.sv || 0) || b.gd - a.gd;
 function rankBoard(rows) {
   const ranked = rows.filter(r => (r.nick || '').trim()).sort(lbCmp);
   return { ranked, count: ranked.length };
@@ -1455,7 +1464,7 @@ async function openBoard(c, ret) {
     const nick = document.createElement('span'); nick.className = 'b-nick'; nick.dir = 'auto'; nick.textContent = r.nick;
     if (mine) { const you = document.createElement('span'); you.className = 'b-you t-cap'; you.textContent = ' ' + t('lb_you'); nick.appendChild(you); }
     // GloryScore is the headline number (also the sort key); stage/detail sit below it
-    const glory = document.createElement('span'); glory.className = 'b-glory'; glory.textContent = gloryScore(r);
+    const glory = document.createElement('span'); glory.className = 'b-glory'; glory.textContent = boardScore(r);
     const det = document.createElement('span'); det.className = 'b-det';
     det.textContent = shortStage(r.stage) + ' · ' + dimDetail(dim, r, he)
       + (r.ok === true ? ' ✓' : r.ok === false ? ' ✗' : '')
@@ -1523,7 +1532,7 @@ function showResult() {
   const avg = Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
   $('verdict-avg').textContent = t('avg_rating', avg);
   // GloryScore + "your best today" — every run is a score that can be beaten (move 5)
-  const gScore = gloryScore({ stage: J.finalStage, gd: R.gf - R.ga });
+  const gScore = boardScore({ stage: J.finalStage, gd: R.gf - R.ga, day: S.challenge ? S.challenge.d : 0, avg });
   const { best, isNew } = recordGloryBest(_todayIso(), gScore);
   const gEl = $('verdict-glory');
   if (gEl) {
@@ -1553,7 +1562,8 @@ function showResult() {
     $('loss-peak').textContent = lossPeakLine(J);
     $('loss-weak').textContent = lossWeakLine();
     if (lossBox) lossBox.hidden = false;
-    if (swapBtn) swapBtn.hidden = false;
+    // run-it-back is offered only until the same-team replay cap is reached
+    if (swapBtn) swapBtn.hidden = !canReplay();
     if (againBtn) againBtn.textContent = t('sw_newteam');
   } else {
     if (lossBox) lossBox.hidden = true;
@@ -1654,13 +1664,22 @@ function lossPeakLine(J) {
             'יציאה ב' + stageTxt + ', ' + score + tail + ' ל' + opp + closeTail);
 }
 
+// run-it-back: a finished team may be swapped & replayed at most this many times,
+// so a run isn't ground up to a win by re-rolling one upgrade after another.
+// Two attempts total with one team = the initial run + one swap-replay.
+const MAX_SWAP_REPLAYS = 1;
+const canReplay = () => (S.swapCount || 0) < MAX_SWAP_REPLAYS;
+
 function lossWeakLine() {
   const he = getLang() === 'he', ev = (en, h) => he ? h : en;
   const sc = computeTeamScores(S.xi);
   const lines = [[t('sp_def'), sc.defense], [t('sp_mid'), sc.midfield], [t('sp_att'), sc.attack]];
   const weak = lines.reduce((a, b) => a[1] <= b[1] ? a : b);
-  return ev('SOFT BELLY: ' + weak[0] + ' (' + Math.round(weak[1]) + ') · SWAP ONE & RUN IT BACK',
-            'הבטן הרכה: ' + weak[0] + ' (' + Math.round(weak[1]) + '). החלף אחד, רוץ שוב.');
+  const head = ev('SOFT BELLY: ' + weak[0] + ' (' + Math.round(weak[1]) + ')',
+                  'הבטן הרכה: ' + weak[0] + ' (' + Math.round(weak[1]) + ')');
+  return head + (canReplay()
+    ? ev(' · SWAP ONE & RUN IT BACK', '. החלף אחד, רוץ שוב.')
+    : ev(' · NO REPLAYS LEFT — NEW XI', '. נגמרו הניסיונות, הרכב חדש.'));
 }
 
 // default swap target = the lowest-rated player in the weakest line
@@ -1781,6 +1800,7 @@ function applySwap(slot, opt) {
   S.xi[slot] = opt;
   S.used = new Set(SLOTS.filter(s => S.xi[s]).map(s => S.xi[s].c));
   S.tryNo = (S.tryNo || 0) + 1; // each run-it-back is a fresh attempt on the board
+  S.swapCount = (S.swapCount || 0) + 1; // same-team replays used, capped by MAX_SWAP_REPLAYS
   track('swap_replay', { slot });
   runTournament(); // same XI + one upgrade, straight back into the tournament
 }
@@ -1798,6 +1818,7 @@ function resetGame() {
   S.journey = null;
   S.ctrl = null;
   S.tryNo = 0;
+  S.swapCount = 0;
   S.lbRowId = null;
   S.spinning = false;
   S.feedIdx = 0; S.matchNo = 0; S.printing = false;
