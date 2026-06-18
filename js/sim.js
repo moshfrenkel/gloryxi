@@ -20,6 +20,23 @@ const ELO_BASE  = 1213;
 const ELO_SCALE = 10;
 const EXP_COEF  = 0.50;
 
+// ─── Sprint 4: variance schedule (knockout only) ────────────────────────────────
+// The cup should stay a lottery among the survivors, but a strong team shouldn't
+// freak-exit in the first knockout round. So R32/R16 steepen the favourite's edge
+// (fewer early upsets → more strong teams reach the dramatic late rounds) while
+// QF→F keep the full variance (champion rate stays realistic). A tighter goal cap
+// in those early rounds also compresses blowouts → a favourite's loss reads
+// 0-1 / 1-2 / on pens, not 0-3. Groups and the late rounds are untouched.
+const EARLY_KO = new Set(['R32', 'R16']);
+// Gentle so the SHOWN odds stay believable: a clear favourite advances ~74% in the R16
+// vs ~69% in the QF (a small, defensible "early rounds favour the seed"), not a jarring
+// 88%→69% jump. Re-calibrated 2026-06-18 after Mosh flagged the odds felt invented.
+const EARLY_D_GAIN = 1.3;     // multiply the Elo gap in early KO rounds (1 = off)
+const EARLY_LAMBDA_CAP = 2.6; // max expected goals per side in early KO rounds → still compresses blowouts
+export function koMods(stage) {
+  return EARLY_KO.has(stage) ? { dGain: EARLY_D_GAIN, cap: EARLY_LAMBDA_CAP } : { dGain: 1, cap: Infinity };
+}
+
 // ─── 2.1 Team scores ──────────────────────────────────────────────────────────
 // Positional importance in 4-4-2, grounded in plus-minus rating literature
 // (Kharrat/McHale/Peña), market-value-by-position data (CIES/Transfermarkt) and
@@ -146,6 +163,52 @@ function expGoals(d) {
   return Math.min(Math.max(1.35 * Math.pow(10, EXP_COEF * d), 0.2), 4.5);
 }
 
+// ─── 2.2 Pure win-probability core (DISPLAY ONLY — never touches the RNG) ────────
+// matchProb builds the exact Poisson grid the engine samples from: P(you score i) ×
+// P(they score j) for i,j = 0..N, summing the lower triangle (win), diagonal (draw)
+// and upper triangle (loss). Identical to the Skellam distribution of (goalsA−goalsB).
+// These feed the on-screen odds meters; they read the same EXP_COEF/expGoals/tempo
+// the simulation uses, so the number the player sees is the real chance — but they
+// run no Math.random and feed nothing back into results, so calibration cannot move.
+const _PGRID_N = 16; // tail beyond this is ~1e-5 even at the all-out λ ceiling; renormalised below
+
+function _poissonPmf(lambda) {
+  const arr = new Array(_PGRID_N + 1);
+  let p = Math.exp(-lambda), s = 0;
+  for (let k = 0; k <= _PGRID_N; k++) { arr[k] = p; s += p; p = p * lambda / (k + 1); }
+  for (let k = 0; k <= _PGRID_N; k++) arr[k] /= s; // renormalise the truncated tail → sums to 1
+  return arr;
+}
+
+// opts {dGain, cap} apply the variance schedule so the displayed odds match the
+// engine in early knockout rounds. With no opts (dGain=1, cap=Infinity) this is the
+// plain Poisson grid == Skellam, unchanged from Sprint 0.
+export function matchProb(eloA, eloB, tempo = 1, opts) {
+  const dGain = (opts && opts.dGain) || 1;
+  const cap = (opts && opts.cap != null) ? opts.cap : Infinity;
+  const d = (eloA - eloB) / 400 * dGain;
+  const pa = _poissonPmf(Math.min(expGoals(d) * tempo, cap));
+  const pb = _poissonPmf(Math.min(expGoals(-d) * tempo, cap));
+  let win = 0, draw = 0, loss = 0;
+  for (let i = 0; i <= _PGRID_N; i++) {
+    for (let j = 0; j <= _PGRID_N; j++) {
+      const pij = pa[i] * pb[j];
+      if (i > j) win += pij; else if (i === j) draw += pij; else loss += pij;
+    }
+  }
+  return { win, draw, loss };
+}
+
+// Knockout advance chance = win in normal/extra time + a drawn game taken on pens.
+// The penalty edge mirrors simulateKnockout exactly: clamp(0.5 + d*0.35, .25, .75).
+export function advanceProb(eloA, eloB, tempo = 1, opts) {
+  const { win, draw } = matchProb(eloA, eloB, tempo, opts);
+  const dGain = (opts && opts.dGain) || 1;
+  const d = (eloA - eloB) / 400 * dGain;
+  const penWinA = Math.min(Math.max(0.5 + d * 0.35, 0.25), 0.75);
+  return win + draw * penWinA;
+}
+
 // ─── 2.3 Matches ──────────────────────────────────────────────────────────────
 const POS_GOAL_WEIGHT = { GK: 0.05, DF: 0.7, MF: 2.5, FW: 5 };
 
@@ -198,10 +261,14 @@ export function simulateMatch(eloA, eloB, playersA, playersB, tempo = 1) {
   return { scoreA, scoreB, scorers, scorersB, note: '', winnerIsA: scoreA > scoreB };
 }
 
-export function simulateKnockout(eloA, eloB, playersA, playersB, tempo = 1) {
-  const d = (eloA - eloB) / 400;
-  let scoreA = poissonSample(expGoals(d) * tempo);
-  let scoreB = poissonSample(expGoals(-d) * tempo);
+export function simulateKnockout(eloA, eloB, playersA, playersB, tempo = 1, stage) {
+  // variance schedule: early rounds steepen the gap (dGain) and cap goals
+  const { dGain, cap } = koMods(stage);
+  const d = (eloA - eloB) / 400 * dGain;
+  const lamA = Math.min(expGoals(d) * tempo, cap);
+  const lamB = Math.min(expGoals(-d) * tempo, cap);
+  let scoreA = poissonSample(lamA);
+  let scoreB = poissonSample(lamB);
   let note = '';
   const scorers = [];
   const scorersB = [];
@@ -209,8 +276,8 @@ export function simulateKnockout(eloA, eloB, playersA, playersB, tempo = 1) {
   if (playersB && playersB.length > 0) _sampleScorers(scoreB, playersB, scorersB, 90);
 
   if (scoreA === scoreB) {
-    const etA = poissonSample(expGoals(d) * 0.33 * tempo);
-    const etB = poissonSample(expGoals(-d) * 0.33 * tempo);
+    const etA = poissonSample(lamA * 0.33);
+    const etB = poissonSample(lamB * 0.33);
     scoreA += etA; scoreB += etB;
     if (playersA && playersA.length > 0 && etA > 0) _sampleScorers(etA, playersA, scorers, 120);
     if (playersB && playersB.length > 0 && etB > 0) _sampleScorers(etB, playersB, scorersB, 120);
@@ -490,7 +557,7 @@ export function simulateTournament(xi, field2026, squads) {
     if (userInA || userInB) {
       const opp = userInA ? teamB : teamA;
       // user always modelled as side A (userElo vs opp) — preserves calibration
-      const m = simulateKnockout(userElo, getElo(opp), players, oppPlayers(opp));
+      const m = simulateKnockout(userElo, getElo(opp), players, oppPlayers(opp), 1, stage);
       _tallyGoals(m.scorers, 'USER_XI');
       _tallyGoals(m.scorersB, opp);
       record.gf += m.scoreA; record.ga += m.scoreB;
@@ -510,7 +577,7 @@ export function simulateTournament(xi, field2026, squads) {
       if (!m.winnerIsA && userFinalStage === null) userFinalStage = stage;
       return;
     }
-    const m = simulateKnockout(getElo(teamA), getElo(teamB), oppPlayers(teamA), oppPlayers(teamB));
+    const m = simulateKnockout(getElo(teamA), getElo(teamB), oppPlayers(teamA), oppPlayers(teamB), 1, stage);
     _tallyGoals(m.scorers, teamA);
     _tallyGoals(m.scorersB, teamB);
     winners[mnum] = m.winnerIsA ? teamA : teamB;
@@ -530,6 +597,22 @@ export function simulateTournament(xi, field2026, squads) {
   }
   const finalStage = winners[104] === 'USER_XI' ? 'CHAMPION' : (userFinalStage || 'F');
   return finish({ finalStage });
+}
+
+// ─── Live title odds (Monte Carlo, DISPLAY ONLY) ────────────────────────────────
+// Runs the real tournament n times and returns the cumulative "reached at least
+// this stage" probabilities for the given XI. The engine plays 10k tournaments in
+// ~1.2s, so n=200 is ~25ms — cheap enough to refresh live during selection (the UI
+// debounces it). Pure Monte Carlo over the same code the game uses; changes nothing.
+export function titleOdds(xi, field2026, squads, n = 200) {
+  const c = { CHAMPION: 0, F: 0, SF: 0, QF: 0, R16: 0, R32: 0, GROUP_EXIT: 0 };
+  for (let i = 0; i < n; i++) c[simulateTournament(xi, field2026, squads).finalStage]++;
+  const champion = c.CHAMPION;
+  const final = champion + c.F;       // reached the final (won it or lost it)
+  const semi  = final + c.SF;
+  const qf    = semi + c.QF;
+  const r16   = qf + c.R16;
+  return { champion: champion / n, final: final / n, semi: semi / n, qf: qf / n, r16: r16 / n, n };
 }
 
 function _applyResult(rowA, rowB, sa, sb) {
@@ -722,13 +805,13 @@ export function createTournament(xi, field2026, squads) {
     if (x32) {
       const teamA = seed[x32.a];
       const teamB = x32.b.startsWith('3:') ? tables[thirdAlloc.get(x32.m)][2].team : seed[x32.b];
-      const m = simulateKnockout(getElo(teamA), getElo(teamB), oppPlayers(teamA), oppPlayers(teamB));
+      const m = simulateKnockout(getElo(teamA), getElo(teamB), oppPlayers(teamA), oppPlayers(teamB), 1, 'R32');
       _tallyGoals(m.scorers, teamA); _tallyGoals(m.scorersB, teamB);
       return winners[mnum] = m.winnerIsA ? teamA : teamB;
     }
     const xl = BRACKET_LATER.find(e => e.m === mnum);
     const wa = resolveWinner(xl.a), wb = resolveWinner(xl.b);
-    const m = simulateKnockout(getElo(wa), getElo(wb), oppPlayers(wa), oppPlayers(wb));
+    const m = simulateKnockout(getElo(wa), getElo(wb), oppPlayers(wa), oppPlayers(wb), 1, xl.stage);
     _tallyGoals(m.scorers, wa); _tallyGoals(m.scorersB, wb);
     return winners[mnum] = m.winnerIsA ? wa : wb;
   }
@@ -835,7 +918,7 @@ export function createTournament(xi, field2026, squads) {
         return entry;
       }
       // knockout
-      const r = simulateKnockout(uElo, getElo(opp), basePlayers, oppPlayers(opp), tempo);
+      const r = simulateKnockout(uElo, getElo(opp), basePlayers, oppPlayers(opp), tempo, pending.stage);
       _tallyGoals(r.scorers, 'USER_XI'); _tallyGoals(r.scorersB, opp);
       record.gf += r.scoreA; record.ga += r.scoreB;
       if (r.winnerIsA) record.w++; else if (r.note.startsWith('(pens')) record.d++; else record.l++;
@@ -889,10 +972,11 @@ export function selftest(n = 2000) {
   const win99 = results.avg99.counts.CHAMPION / n;
   const win50 = results.avg50.counts.CHAMPION / n;
   const qf80  = (results.avg80.counts.QF + results.avg80.counts.SF + results.avg80.counts.F + results.avg80.counts.CHAMPION) / n;
-  console.log('\nTarget checks (post 2026-06-11 difficulty pass):');
+  console.log('\nTarget checks (2026-06-18 variance schedule — deep runs up, titles flat):');
   console.log(`  avg99 win rate: ${(win99 * 100).toFixed(1)}% (need >=30%)`);
   console.log(`  avg50 win rate: ${(win50 * 100).toFixed(1)}% (need <0.1%)`);
-  console.log(`  avg80 QF+ rate: ${(qf80 * 100).toFixed(1)}% (need >35%)`);
+  console.log(`  avg80 QF+ rate: ${(qf80 * 100).toFixed(1)}% (target ~58%, was ~49%)`);
+  console.log(`  avg80 champion: ${(results.avg80.counts.CHAMPION / n * 100).toFixed(1)}% (must stay <=~15%)`);
   return results;
 }
 

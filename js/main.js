@@ -4,7 +4,7 @@
    Mechanics: auto-spin (no hold), pick any player then a free compatible slot,
    ratings always visible, one player per country, 1 team-skip + 1 year-skip. */
 
-import { createTournament, mentalityAt, computeTeamScores, computeTeamElo, buildOpponentXiObject } from './sim.js';
+import { createTournament, mentalityAt, computeTeamScores, computeTeamElo, buildOpponentXiObject, matchProb, advanceProb, titleOdds, koMods } from './sim.js';
 import { shareResult, shareStory } from './share.js';
 import { t, getLang, setLang, applyStatic } from './i18n.js';
 import { kitFor, jerseySVG } from './kits.js';
@@ -19,6 +19,8 @@ const POS_SLOTS = {
   MF: ['CM1', 'CM2', 'RM', 'LM'],
   FW: ['ST1', 'ST2'],
 };
+// reverse lookup slot → position group (used by the Sprint-3 swap eligibility)
+const SLOT_POS_GROUP = Object.fromEntries(Object.entries(POS_SLOTS).flatMap(([pos, slots]) => slots.map(s => [s, pos])));
 const SLOT_LABEL = {
   GK: 'GK', RB: 'RB', CB1: 'CB 1', CB2: 'CB 2', LB: 'LB',
   CM1: 'CM 1', CM2: 'CM 2', RM: 'RM', LM: 'LM', ST1: 'ST 1', ST2: 'ST 2',
@@ -409,6 +411,7 @@ function showSquad() {
   $('squad-title').appendChild(yr);
   updateSkipBoxes(true);
   updateBoardCount();
+  renderDraftMeter();
 
   const list = $('player-list');
   list.innerHTML = '';
@@ -509,6 +512,7 @@ function place(p, slot) {
   renderBoard();
   renderPips();
   updateBoardCount();
+  renderDraftMeter();
   if (xiCount() >= 11) {
     if (S.jokerOffered) startTournament();
     else { S.jokerOffered = true; showJoker(); }
@@ -536,6 +540,7 @@ function enterSwapMode() {
     S.used.delete(p.c);
     renderPips();
     updateBoardCount();
+    renderDraftMeter();
     startDraw(null);   // one fresh draw, normal rules, fills the vacated slot
   });
 }
@@ -555,6 +560,70 @@ function updateBoardCount() {
   const n = Object.keys(S.xi).length + '/11';
   $('board-count').textContent = n;
   $('board-count-2').textContent = n;
+}
+
+// ── Sprint 1: live control meter on the squad sheet (move 1 lines + move 2 odds) ─
+// Lines come straight from computeTeamScores (the same engine the result uses), so
+// the weakest line ("soft belly") shows in coral the moment it appears. Title odds
+// run the real Monte-Carlo on the current XI, gated to a near-full team (the call
+// that matters) and debounced so rapid picks don't churn.
+let _oddsTimer = null, _oddsSeq = 0;
+function setOdd(id, p) {
+  const el = $(id); if (!el) return;
+  const pct = p * 100;
+  el.textContent = pct >= 9.5 ? Math.round(pct) + '%' : pct >= 0.5 ? pct.toFixed(1) + '%' : '<1%';
+}
+function renderDraftMeter() {
+  const meter = $('draft-meter'); if (!meter) return;
+  const placed = xiCount();
+  if (placed === 0) { meter.hidden = true; return; }
+  meter.hidden = false;
+  const sc = computeTeamScores(S.xi);
+  const vals = { def: Math.round(sc.defense), mid: Math.round(sc.midfield), att: Math.round(sc.attack) };
+  const minV = Math.min(vals.def, vals.mid, vals.att);
+  let weakMarked = false;
+  for (const key of ['def', 'mid', 'att']) {
+    const cell = meter.querySelector('.dm-line[data-line="' + key + '"]'); if (!cell) continue;
+    const v = vals[key];
+    cell.querySelector('.dm-val').textContent = v;
+    cell.querySelector('.dm-bar i').style.width = Math.min(v / 99 * 100, 100) + '%';
+    const isWeak = !weakMarked && v === minV;   // only the single softest line wears the coral
+    if (isWeak) weakMarked = true;
+    cell.className = 'dm-line tier-' + statTier(v) + (isWeak ? ' dm-weak' : '');
+  }
+  const oddsBox = $('dm-odds'), building = $('dm-building');
+  if (placed >= 8) {
+    if (building) building.hidden = true;
+    oddsBox.hidden = false;
+    oddsBox.classList.add('dm-pending');
+    const snapshot = { ...S.xi }, seq = ++_oddsSeq;
+    if (_oddsTimer) clearTimeout(_oddsTimer);
+    _oddsTimer = setTimeout(() => {
+      const o = titleOdds(snapshot, S.field, undefined, 200);
+      if (seq !== _oddsSeq) return;             // a newer pick already superseded this run
+      setOdd('dm-champ', o.champion); setOdd('dm-final', o.final); setOdd('dm-qf', o.qf);
+      oddsBox.classList.remove('dm-pending');
+    }, 200);
+  } else {
+    oddsBox.hidden = true;
+    if (building) building.hidden = false;
+  }
+}
+
+// ── Sprint 1: decision room — opponent lines + YOUR live win/advance % ──────────
+// The chance recomputes from the user's Elo at the CURRENT mentality (blend + tempo
+// from mentalityAt) vs the opponent, using the same Poisson grid the engine samples.
+function updateWinPct() {
+  const ctx = S.tacCtx, el = $('tac-win-pct'), cap = $('tac-win-cap');
+  if (!ctx || !el || !S.simXi) return;
+  const m = mentalityAt(S.mentality);
+  const uElo = computeTeamElo(S.simXi, { wa: m.wa, wd: m.wd, wm: m.wm });
+  const isKO = ctx.stage !== 'GROUP';
+  // early KO rounds carry the variance-schedule mods so the shown chance matches the engine
+  const p = isKO ? advanceProb(uElo, ctx.oppElo, m.tempo, koMods(ctx.stage)) : matchProb(uElo, ctx.oppElo, m.tempo).win;
+  el.textContent = Math.round(p * 100) + '%';
+  el.className = 'tac-win-pct ' + (p >= 0.55 ? 'wp-fav' : p <= 0.40 ? 'wp-dog' : 'wp-even');
+  if (cap) cap.textContent = isKO ? t('tac_advance') : t('tac_win');
 }
 
 // ── S4 board + S6 result pitch (shared renderer) ──────────────────────────────
@@ -577,6 +646,7 @@ function renderPitchInto(containerId, withMeta, onSlotTap) {
     const [x, y] = SLOT_XY[slot];
     const d = document.createElement('div');
     d.className = 'b-slot' + (S.xi[slot] ? ' filled' : '');
+    d.dataset.slot = slot;
     d.style.left = x + '%';
     d.style.top = y + '%';
     if (onSlotTap && S.xi[slot]) d.addEventListener('click', () => onSlotTap(slot));
@@ -706,6 +776,7 @@ function runTournament() {
     // carry g/caps/aw so the personal goal-tendency applies to the user's scorers
     xiSim[slot] = { n: surname(p.n).toUpperCase(), p: p.p, r: p.r, sp: p.sp, g: p.g, caps: p.caps, aw: p.aw };
   }
+  S.simXi = xiSim; // kept so the decision room can recompute Elo/odds at any mentality
   // real 2026 squad for every opponent nation — powers opponent scorers + per-line averages
   const squads = {};
   for (const country of Object.values(S.field.groups).flat()) {
@@ -742,14 +813,30 @@ function mentName(v) {
   return t(['ment_bunker', 'ment_def', 'ment_bal', 'ment_atk', 'ment_allout'][i]);
 }
 function updateTacticsBar(ctx) {
-  if (!ctx) { showTactics(false); return; }
+  if (!ctx) { showTactics(false); S.tacCtx = null; return; }
   showTactics(true);
+  S.tacCtx = ctx; // kept so the slider can recompute the live win% as it drags
   const nm = $('tac-opp-name'); if (nm) nm.textContent = ctx.opponent;
   const rd = $('tac-read');
   if (rd) { rd.textContent = t('read_' + ctx.read.label); rd.className = 'tac-read t-cap read-' + ctx.read.label; }
+  // opponent's three lines (ATT/MID/DEF) from their real XI — exposed as ctx.oppXi
+  const olEl = $('tac-opp-lines');
+  if (olEl) {
+    olEl.innerHTML = '';
+    if (ctx.oppXi) {
+      const osc = computeTeamScores(ctx.oppXi);
+      [['sp_att', osc.attack], ['sp_mid', osc.midfield], ['sp_def', osc.defense]].forEach(([k, v]) => {
+        const s = document.createElement('span'); s.className = 'tac-ol';
+        const ik = document.createElement('i'); ik.className = 't-cap'; ik.textContent = t(k);
+        const vv = document.createElement('b'); vv.textContent = Math.round(v);
+        s.append(ik, vv); olEl.appendChild(s);
+      });
+    }
+  }
   const sl = $('tac-slider');
   if (sl) { sl.value = Math.round(S.mentality * 100); sl.setAttribute('aria-valuetext', mentName(S.mentality)); }
   const cur = $('tac-current'); if (cur) cur.textContent = mentName(S.mentality);
+  updateWinPct();
 }
 
 function addLine(cls, text) {
@@ -887,7 +974,7 @@ function renderStrengthPanel(xiSim, groupOpps) {
     const bar = document.createElement('div');
     bar.className = 'sp-opp-bar';
     const fill = document.createElement('i');
-    const pct = Math.min(Math.max((oe - 1600) / 500 * 100, 6), 100);
+    const pct = Math.min(Math.max((oe - 1450) / 650 * 100, 6), 100); // span the real 1455–2085 field
     fill.style.width = pct + '%';
     if (oe >= elo) fill.classList.add('stronger');
     bar.appendChild(fill);
@@ -1052,6 +1139,29 @@ function finishTournament() {
 
 // ── stage-2 win conditions — checked from the journey + the XI ────────────────
 const STAGE_RANK = { GROUP_EXIT: 0, R32: 1, R16: 2, QF: 3, SF: 4, F: 5, CHAMPION: 6 };
+
+// ── GloryScore (move 5): one continuous score where the STAGE always dominates ──
+// and the goal-difference only breaks ties WITHIN a stage. No leagues, no knockout
+// streak bonus (Mosh dropped both — advancing already rewards depth). Met-the-rule
+// stays a ✓ badge / late tiebreak, never overrides position. Computed entirely on
+// the client from fields already stored per row (stage + gd) — no Supabase change.
+const GLORY_PTS = { GROUP_EXIT: 0, R32: 10, R16: 25, QF: 50, SF: 90, F: 140, CHAMPION: 200 };
+const gloryScore = (r) => (GLORY_PTS[r.stage] ?? 0) + (r.gd || 0);
+
+// "Your best today" — the day's top GloryScore, kept per ISO date in localStorage.
+const GLORY_BEST_KEY = 'gxi_glory_best';
+function gloryBest(date) {
+  try { return (JSON.parse(localStorage.getItem(GLORY_BEST_KEY) || '{}')[date]) || 0; }
+  catch (_) { return 0; }
+}
+function recordGloryBest(date, score) {
+  try {
+    const all = JSON.parse(localStorage.getItem(GLORY_BEST_KEY) || '{}');
+    const prev = all[date] || 0;
+    if (score > prev) { all[date] = score; localStorage.setItem(GLORY_BEST_KEY, JSON.stringify(all)); return { best: score, isNew: true, prev }; }
+    return { best: prev, isNew: false, prev };
+  } catch (_) { return { best: score, isNew: true }; }
+}
 
 function _goalsBySlot(J) {
   const g = {};
@@ -1311,7 +1421,9 @@ function renderLeaderboardRow(c, J) {
 // furthest, then goal-diff. Every finished RUN is its own line — play 100 times,
 // get 100 lines, each ranked where it lands. No collapsing by name.
 const okRank = (r) => r.ok === true ? 2 : r.ok === false ? 0 : 1;
-const lbCmp = (a, b) => okRank(b) - okRank(a) || (b.sv || 0) - (a.sv || 0) || b.stage_rank - a.stage_rank || b.gd - a.gd;
+// position-primary: GloryScore first (stage dominates, gd breaks within-stage ties),
+// then met-the-rule, then the day's special magnitude, then raw goal-diff.
+const lbCmp = (a, b) => gloryScore(b) - gloryScore(a) || okRank(b) - okRank(a) || (b.sv || 0) - (a.sv || 0) || b.gd - a.gd;
 function rankBoard(rows) {
   const ranked = rows.filter(r => (r.nick || '').trim()).sort(lbCmp);
   return { ranked, count: ranked.length };
@@ -1321,6 +1433,8 @@ async function openBoard(c, ret) {
   S.boardReturn = ret || 's1';
   $('board-title').textContent = 'DAILY #' + c.d + ' · ' + chTitle(c);
   $('board-sub').textContent = c.date;
+  const bestToday = gloryBest(c.date), bestEl = $('board-best');
+  if (bestEl) { if (bestToday > 0) { bestEl.textContent = t('gs_board_best', bestToday); bestEl.hidden = false; } else bestEl.hidden = true; }
   $('board-list').innerHTML = '';
   const st = $('board-state'); st.hidden = false; st.textContent = t('lb_loading');
   show('s-board');
@@ -1340,9 +1454,13 @@ async function openBoard(c, ret) {
     const rank = document.createElement('span'); rank.className = 'b-rank'; rank.textContent = i + 1;
     const nick = document.createElement('span'); nick.className = 'b-nick'; nick.dir = 'auto'; nick.textContent = r.nick;
     if (mine) { const you = document.createElement('span'); you.className = 'b-you t-cap'; you.textContent = ' ' + t('lb_you'); nick.appendChild(you); }
+    // GloryScore is the headline number (also the sort key); stage/detail sit below it
+    const glory = document.createElement('span'); glory.className = 'b-glory'; glory.textContent = gloryScore(r);
     const det = document.createElement('span'); det.className = 'b-det';
-    det.textContent = shortStage(r.stage) + ' · ' + dimDetail(dim, r, he) + (r.ok === true ? ' ✓' : r.ok === false ? ' ✗' : '');
-    li.append(rank, nick, det);
+    det.textContent = shortStage(r.stage) + ' · ' + dimDetail(dim, r, he)
+      + (r.ok === true ? ' ✓' : r.ok === false ? ' ✗' : '')
+      + (r.tries ? ' · ' + t('gs_try', r.tries) : '');
+    li.append(rank, nick, glory, det);
     if (r.top_scorer) {
       const sc = document.createElement('span'); sc.className = 'b-scorer';
       const place = (rk) => rk ? (he ? ' · מקום ' : ' · #') + rk : '';
@@ -1404,6 +1522,20 @@ function showResult() {
   $('verdict-record').textContent = t('record', R.w, R.d, R.l, R.gf, R.ga);
   const avg = Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
   $('verdict-avg').textContent = t('avg_rating', avg);
+  // GloryScore + "your best today" — every run is a score that can be beaten (move 5)
+  const gScore = gloryScore({ stage: J.finalStage, gd: R.gf - R.ga });
+  const { best, isNew } = recordGloryBest(_todayIso(), gScore);
+  const gEl = $('verdict-glory');
+  if (gEl) {
+    gEl.innerHTML = '';
+    const lab = document.createElement('span'); lab.className = 'vg-lab t-cap'; lab.textContent = t('gs_label');
+    const val = document.createElement('b'); val.className = 'vg-val'; val.textContent = gScore;
+    const bst = document.createElement('span'); bst.className = 'vg-best t-cap' + (isNew ? ' vg-new' : '');
+    bst.textContent = isNew ? t('gs_new') : t('gs_best', best);
+    gEl.append(lab, val, bst);
+    gEl.hidden = false;
+  }
+  const sl = $('scoring-link'); if (sl) sl.hidden = false;
   document.querySelector('#s6 .tracklist-label').textContent = S.teamName;
 
   renderPitchInto('result-slots', true);
@@ -1413,6 +1545,21 @@ function showResult() {
     if (ach) { badge.textContent = ach; badge.hidden = false; } else badge.hidden = true;
   }
   renderGoalKing(J);
+
+  // Sprint 3: the "almost" framing + swap CTA — only when you didn't lift the cup
+  const champ = J.finalStage === 'CHAMPION';
+  const lossBox = $('loss-summary'), swapBtn = $('btn-swap'), againBtn = $('btn-again');
+  if (!champ) {
+    $('loss-peak').textContent = lossPeakLine(J);
+    $('loss-weak').textContent = lossWeakLine();
+    if (lossBox) lossBox.hidden = false;
+    if (swapBtn) swapBtn.hidden = false;
+    if (againBtn) againBtn.textContent = t('sw_newteam');
+  } else {
+    if (lossBox) lossBox.hidden = true;
+    if (swapBtn) swapBtn.hidden = true;
+    if (againBtn) againBtn.textContent = t('again');
+  }
 }
 
 // tournament Golden Boot / Playmaker (ALL teams) — always fully open
@@ -1472,6 +1619,172 @@ function tourneyAchievement(J) {
     : `${pick.name} — ${place} in tournament ${label.toLowerCase()}`;
 }
 
+// ── Sprint 3: the "almost" loss screen + swap-one-player-and-replay ────────────
+// The narrative is always the honest output of the sim — never inflated. Peak-End:
+// the last 10 seconds of a run become the emotional hook + a one-tap path to save
+// the XI you built instead of starting from scratch (loss-aversion / endowment).
+const fmtPct = (p) => { const v = p * 100; return v >= 9.5 ? Math.round(v) + '%' : v >= 0.5 ? v.toFixed(1) + '%' : '<1%'; };
+
+function lossPeakLine(J) {
+  const he = getLang() === 'he', ev = (en, h) => he ? h : en;
+  if (J.finalStage === 'GROUP_EXIT') {
+    const r = J.rank || 3, ord = r === 1 ? 'ST' : r === 2 ? 'ND' : r === 3 ? 'RD' : 'TH';
+    return ev('OUT IN THE GROUP STAGE · FINISHED ' + r + ord + ' · A WHISKER FROM THE KNOCKOUTS',
+              'נפילה בשלב הבתים, מקום ' + r + ' בבית. צעד אחד מהנוקאאוט.');
+  }
+  const userMatches = J.journey.filter(m => m.opponent);
+  const last = userMatches[userMatches.length - 1];
+  if (!last) return '';
+  const opp = String(last.opponent).toUpperCase();
+  const score = last.scoreFor + (he ? ':' : '-') + last.scoreAgainst;
+  const onPens = /pen/i.test(last.note || ''), aet = /a\.e\.t/i.test(last.note || '');
+  const tail = onPens ? ev(' ON PENALTIES', ' בפנדלים') : aet ? ev(' AFTER EXTRA TIME', ' בהארכה') : '';
+  if (J.finalStage === 'F') {
+    return ev('RUNNERS-UP · LOST THE FINAL ' + score + tail + ' TO ' + opp + ' · ONE GAME FROM IT ALL',
+              'סגנית אלופה. הפסד בגמר ' + score + tail + ' ל' + opp + '. משחק אחד מהכל.');
+  }
+  const NEXT_EN = { R32: 'THE LAST 16', R16: 'THE QUARTERS', QF: 'THE SEMIS', SF: 'THE FINAL' };
+  const NEXT_HE = { R32: 'שמינית הגמר', R16: 'רבע הגמר', QF: 'חצי הגמר', SF: 'הגמר' };
+  const close = onPens || aet || Math.abs(last.scoreFor - last.scoreAgainst) <= 1;
+  const stageTxt = shortStage(J.finalStage);
+  const closeTail = close
+    ? ev(' · A KICK FROM ' + (NEXT_EN[J.finalStage] || 'THE NEXT ROUND'), '. נשימה מ' + (NEXT_HE[J.finalStage] || 'השלב הבא') + '.')
+    : '';
+  return ev('OUT IN ' + stageTxt.toUpperCase() + ' · ' + score + tail + ' TO ' + opp + closeTail,
+            'יציאה ב' + stageTxt + ', ' + score + tail + ' ל' + opp + closeTail);
+}
+
+function lossWeakLine() {
+  const he = getLang() === 'he', ev = (en, h) => he ? h : en;
+  const sc = computeTeamScores(S.xi);
+  const lines = [[t('sp_def'), sc.defense], [t('sp_mid'), sc.midfield], [t('sp_att'), sc.attack]];
+  const weak = lines.reduce((a, b) => a[1] <= b[1] ? a : b);
+  return ev('SOFT BELLY: ' + weak[0] + ' (' + Math.round(weak[1]) + ') · SWAP ONE & RUN IT BACK',
+            'הבטן הרכה: ' + weak[0] + ' (' + Math.round(weak[1]) + '). החלף אחד, רוץ שוב.');
+}
+
+// default swap target = the lowest-rated player in the weakest line
+function weakestSlot() {
+  const sc = computeTeamScores(S.xi);
+  const groups = [
+    [sc.defense, ['GK', 'RB', 'CB1', 'CB2', 'LB']],
+    [sc.midfield, ['CM1', 'CM2', 'RM', 'LM']],
+    [sc.attack, ['ST1', 'ST2']],
+  ];
+  groups.sort((a, b) => a[0] - b[0]);
+  let best = null, bestR = Infinity;
+  for (const s of groups[0][1]) { const p = S.xi[s]; if (p && p.r < bestR) { bestR = p.r; best = s; } }
+  return best || SLOTS.find(s => S.xi[s]) || 'GK';
+}
+
+// is player p a legal replacement for an OCCUPIED slot (same rules as the draft,
+// minus the "slot is free" check) — honours the active daily's challenge filters
+function swapEligible(p, slot, usedCountries, usedNames) {
+  const f = challengeFlt();
+  if (f && f.pos) { if (!f.pos.includes(p.p)) return false; }   // pos-theme day: themed position, any slot
+  else if (SLOT_POS_GROUP[slot] !== p.p) return false;          // normal: player's group must own this slot
+  if (!(f && f.rpt) && usedCountries.has(p.c)) return false;    // one player per country (rpt lifts it)
+  if (usedNames.has(p.c + '|' + p.n)) return false;             // never the same human twice
+  if (f && f.cap) { const cap = f.cap[CAP_GROUP(slot)]; if (cap != null && p.r > cap) return false; }
+  if (f && f.wideNatural && WIDE_SLOTS.includes(slot)) { if (!(p.sp && p.sp.split('/').includes(slot))) return false; }
+  if (f && f.slotEra && f.slotEra[slot] != null) { if (decadeOf(p.y) !== f.slotEra[slot]) return false; }
+  return true;
+}
+
+// draw 3 eligible alternatives for a slot, biased to feel like an upgrade (rating ≥
+// current preferred) but still a small RANDOM draw — not a free-choice shop (Mosh)
+function drawSwapOptions(slot) {
+  const cur = S.xi[slot];
+  const usedCountries = new Set(), usedNames = new Set();
+  for (const s of SLOTS) {
+    if (s === slot || !S.xi[s]) continue;
+    usedCountries.add(S.xi[s].c); usedNames.add(S.xi[s].c + '|' + S.xi[s].n);
+  }
+  const pool = (S.players || []).filter(p =>
+    !(p.c === cur.c && p.n === cur.n) && swapEligible(p, slot, usedCountries, usedNames));
+  if (!pool.length) return [];
+  const better = pool.filter(p => p.r >= cur.r);
+  const base = better.length >= 3 ? better : pool;
+  const sorted = base.slice().sort((a, b) => b.r - a.r);
+  const topN = sorted.slice(0, Math.max(3, Math.ceil(sorted.length * 0.4)));
+  const picks = [], bag = topN.slice();
+  while (picks.length < 3 && bag.length) picks.push(bag.splice(Math.floor(Math.random() * bag.length), 1)[0]);
+  return picks;
+}
+
+function showSwap() {
+  show('s-swap');
+  const he = getLang() === 'he';
+  const sc = computeTeamScores(S.xi);
+  const lines = [[t('sp_def'), sc.defense], [t('sp_mid'), sc.midfield], [t('sp_att'), sc.attack]];
+  const weak = lines.reduce((a, b) => a[1] <= b[1] ? a : b);
+  $('swap-sub').textContent = he
+    ? 'הבטן הרכה: ' + weak[0] + ' (' + Math.round(weak[1]) + '). שדרג אחד, רוץ שוב עם אותה קבוצה.'
+    : 'SOFT BELLY: ' + weak[0] + ' (' + Math.round(weak[1]) + '). UPGRADE ONE, REPLAY THE SAME XI.';
+  renderPitchInto('swap-slots', true, selectSwapSlot);
+  selectSwapSlot(weakestSlot());
+}
+
+let _swapOddsSeq = 0;
+function selectSwapSlot(slot) {
+  S.swapSlot = slot;
+  document.querySelectorAll('#swap-slots .b-slot').forEach(el => el.classList.toggle('swap-target', el.dataset.slot === slot));
+  const cur = S.xi[slot]; if (!cur) return;
+  const he = getLang() === 'he';
+  $('swap-pick-label').textContent = (he ? 'מחליפים: ' : 'REPLACING: ') + surname(cur.n).toUpperCase() + ' (' + cur.r + ') · ' + posTitle(cur.p);
+  const opts = drawSwapOptions(slot);
+  const box = $('swap-options'); box.innerHTML = '';
+  if (!opts.length) {
+    const none = document.createElement('div'); none.className = 'swap-none t-cap';
+    none.textContent = he ? 'אין חלופה כשירה לעמדה הזו' : 'NO ELIGIBLE ALTERNATIVE HERE';
+    box.appendChild(none); return;
+  }
+  const groupKey = { GK: 'defense', DF: 'defense', MF: 'midfield', FW: 'attack' }[SLOT_POS_GROUP[slot]];
+  const lineCap = { defense: t('sp_def'), midfield: t('sp_mid'), attack: t('sp_att') }[groupKey];
+  const curLine = computeTeamScores(S.xi)[groupKey];
+  const cards = [];
+  opts.forEach(opt => {
+    const cand = { ...S.xi, [slot]: opt };
+    const newLine = computeTeamScores(cand)[groupKey];
+    const dLine = Math.round(newLine - curLine);
+    const card = document.createElement('button'); card.className = 'swap-opt';
+    const top = document.createElement('div'); top.className = 'so-top';
+    top.appendChild(makeFlag(opt.c, 'so-flag'));
+    const nm = document.createElement('span'); nm.className = 'so-name'; nm.textContent = surname(opt.n).toUpperCase();
+    const rt = document.createElement('span'); rt.className = 'so-rate'; rt.textContent = opt.r;
+    top.append(nm, rt);
+    const line = document.createElement('div'); line.className = 'so-line';
+    line.innerHTML = '<i>' + lineCap + '</i> ' + Math.round(curLine) + ' → ' + Math.round(newLine)
+      + ' <em class="' + (dLine >= 0 ? 'up' : 'dn') + '">' + (dLine >= 0 ? '+' : '') + dLine + '</em>';
+    const odds = document.createElement('div'); odds.className = 'so-odds';
+    odds.innerHTML = '<i>' + t('dm_champ') + '</i> <span class="so-odds-v t-cap">' + (he ? 'מחשב…' : 'computing…') + '</span>';
+    card.append(top, line, odds);
+    card.addEventListener('click', () => applySwap(slot, opt));
+    box.appendChild(card);
+    cards.push({ cand, oddsEl: odds.querySelector('.so-odds-v') });
+  });
+  // odds delta — the deeper signal; computed just after the cards paint
+  const seq = ++_swapOddsSeq;
+  setTimeout(() => {
+    if (seq !== _swapOddsSeq) return;
+    const curO = titleOdds(S.xi, S.field, undefined, 160).champion;
+    cards.forEach(c => {
+      const o = titleOdds(c.cand, S.field, undefined, 160).champion;
+      const d = Math.round((o - curO) * 100);
+      c.oddsEl.textContent = fmtPct(curO) + ' → ' + fmtPct(o);
+      c.oddsEl.classList.add(o >= curO ? 'up' : 'dn');
+    });
+  }, 40);
+}
+
+function applySwap(slot, opt) {
+  S.xi[slot] = opt;
+  S.used = new Set(SLOTS.filter(s => S.xi[s]).map(s => S.xi[s].c));
+  S.tryNo = (S.tryNo || 0) + 1; // each run-it-back is a fresh attempt on the board
+  track('swap_replay', { slot });
+  runTournament(); // same XI + one upgrade, straight back into the tournament
+}
+
 // ── reset ─────────────────────────────────────────────────────────────────────
 function resetGame() {
   S.xi = {};
@@ -1493,6 +1806,7 @@ function resetGame() {
   renderBoard();
   renderPips();
   updateBoardCount();
+  renderDraftMeter();
 }
 
 // ── how-to overlay (3 steps, first run + on demand) ──────────────────────────
@@ -1524,6 +1838,77 @@ function htNext() {
   try { localStorage.setItem('gxi_howto', '1'); } catch (_) { /* ok */ }
   track('howto_done');
   if (htFromStart) showLegends(); else show('s1');
+}
+
+// ── explainer / how-it-works screen (meters, odds, tactics, end, GloryScore) ───
+const GUIDE = [
+  { key: 'game',
+    svg: '<svg viewBox="0 0 130 46" aria-hidden="true"><rect x="6" y="9" width="26" height="18" fill="none" stroke="#2BD4C0" stroke-width="1.5"/><rect x="10" y="13" width="18" height="10" fill="#2BD4C0" opacity=".7"/><text x="52" y="24" font-family="Anton,Arial Narrow" font-size="16" fill="#F5C518">2026</text><path d="M96 14 h26 M96 14 l-9 36 h44 z" fill="none" stroke="#EDE8DF" stroke-width="1.3"/><circle cx="109" cy="30" r="3" fill="#2BD4C0"/></svg>',
+    he: { t: 'המשחק', b: 'מגרילים מדינה ושנה, בוחרים שחקן אחד מהסגל לעמדה פנויה, וחוזרים 11 פעם. אז משחקים את מונדיאל 2026 המלא: שלב בתים, ואז נוקאאוט עד הגמר.' },
+    en: { t: 'THE GAME', b: 'You draw a nation and a year, pick one player into an open slot, eleven times over. Then you play the full 2026 World Cup: a group stage, then knockout all the way to the final.' } },
+  { key: 'meter',
+    svg: '<svg viewBox="0 0 130 46" aria-hidden="true"><g font-family="Anton,Arial Narrow" font-size="8" fill="#8A8378"><text x="4" y="14">DEF</text><text x="4" y="27">MID</text><text x="4" y="40">ATT</text></g><rect x="30" y="8" width="96" height="6" fill="rgba(237,232,223,.14)"/><rect x="30" y="8" width="74" height="6" fill="#2BD4C0"/><rect x="30" y="21" width="96" height="6" fill="rgba(237,232,223,.14)"/><rect x="30" y="21" width="60" height="6" fill="#F5C518"/><rect x="30" y="34" width="96" height="6" fill="rgba(237,232,223,.14)"/><rect x="30" y="34" width="40" height="6" fill="#FF9F6E"/></svg>',
+    he: { t: 'מד החוזק', b: 'בזמן הבחירה אתה רואה שלושה קווים, הגנה קישור והתקפה, שמתעדכנים בכל שיבוץ. הקו הכי חלש מסומן בכתום, זו הבטן הרכה. שדרוג הקו החלש מזיז את התוצאות יותר מחיזוק הקו החזק.' },
+    en: { t: 'THE STRENGTH METER', b: 'As you pick, three lines — defence, midfield and attack — update with every player. The weakest is flagged in coral, your soft belly. Upgrading the weak line moves results more than strengthening the strong one.' } },
+  { key: 'tactics',
+    svg: '<svg viewBox="0 0 130 46" aria-hidden="true"><rect x="8" y="20" width="114" height="6" rx="3" fill="none"/><line x1="10" y1="23" x2="120" y2="23" stroke="#FF9F6E" stroke-width="5" stroke-linecap="round"/><line x1="44" y1="23" x2="120" y2="23" stroke="#8A8378" stroke-width="5" stroke-linecap="round"/><line x1="86" y1="23" x2="120" y2="23" stroke="#2BD4C0" stroke-width="5" stroke-linecap="round"/><circle cx="86" cy="23" r="9" fill="#EDE8DF" stroke="#2BD4C0" stroke-width="3"/><g font-family="Anton,Arial Narrow" font-size="7" fill="#8A8378"><text x="8" y="40">BUNKER</text><text x="98" y="40">ALL-OUT</text></g></svg>',
+    he: { t: 'סרגל הטקטיקה', b: 'לפני כל משחק אתה בוחר גישה, מבונקר ועד התקפי-מאד, והאחוז זז בזמן אמת.' },
+    en: { t: 'THE TACTICS BAR', b: 'Before each match you choose an approach, from bunker to all-out, and the chance moves live.' } },
+  { key: 'end',
+    svg: '<svg viewBox="0 0 130 46" aria-hidden="true"><path d="M40 14 a18 18 0 1 1 -6 22" fill="none" stroke="#2BD4C0" stroke-width="2"/><path d="M40 8 l2 9 l-9 -1 z" fill="#2BD4C0"/><path d="M90 32 a18 18 0 1 1 6 -22" fill="none" stroke="#F5C518" stroke-width="2"/><path d="M90 38 l-2 -9 l9 1 z" fill="#F5C518"/><text x="56" y="28" font-family="Anton,Arial Narrow" font-size="14" fill="#EDE8DF">↻</text></svg>',
+    he: { t: 'סוף הריצה', b: 'אהבת את הנבחרת שלך והפסדת? אתה יכול להחליף שחקן אחד ולשחק שוב עם אותה קבוצה.' },
+    en: { t: 'END OF THE RUN', b: 'Loved your XI but lost? You can swap one player and play again with the same team.' } },
+  { key: 'score', score: true,
+    svg: '<svg viewBox="0 0 130 46" aria-hidden="true"><g fill="none" stroke="#F5C518" stroke-width="2"><path d="M8 40 h16 v-8 h16 v-9 h16 v-9 h16 v-9 h16"/></g><circle cx="24" cy="32" r="2.5" fill="#2BD4C0"/><circle cx="56" cy="23" r="2.5" fill="#2BD4C0"/><circle cx="88" cy="14" r="2.5" fill="#2BD4C0"/><polygon points="112,5 114,10 119,10 115,13 117,18 112,15 107,18 109,13 105,10 110,10" fill="#F5C518"/></svg>',
+    he: { t: 'הניקוד היומי', b: 'הניקוד בטבלה היומית מורכב מהשלב אליו הגעת, פלוס הפרש השערים. כל ריצה היא שורה שכולם רואים, והשיא שלך היום נשמר ומסומן כשאתה שובר אותו.' },
+    en: { t: 'GloryScore', b: 'Your daily-board score is the stage you reached plus your goal difference. Every run is its own line everyone sees, and "your best today" is saved and flagged when you beat it.' } },
+];
+
+function buildScoreTable(he) {
+  const wrap = document.createElement('div'); wrap.className = 'guide-score';
+  for (const [st, pts] of [['R32', 10], ['R16', 25], ['QF', 50], ['SF', 90], ['F', 140], ['CHAMPION', 200]]) {
+    const r = document.createElement('div'); r.className = 'gsc-row' + (st === 'CHAMPION' ? ' gsc-champ' : '');
+    const a = document.createElement('span'); a.className = 'gsc-stage'; a.textContent = shortStage(st);
+    const b = document.createElement('b'); b.className = 'gsc-pts'; b.textContent = pts;
+    r.append(a, b); wrap.appendChild(r);
+  }
+  const gd = document.createElement('div'); gd.className = 'gsc-gd';
+  gd.textContent = he ? '+ הפרש השערים (שובר שוויון בתוך השלב)' : '+ goal difference (breaks ties within a stage)';
+  const ex = document.createElement('div'); ex.className = 'gsc-ex';
+  ex.textContent = he
+    ? 'דוגמה: רבע גמר עם הפרש +6 שווה 56. אלוף עם +9 שווה 209. השלב תמיד מנצח, רבע (50) גובר על שמינית (25) בכל מקרה.'
+    : 'Example: a QF run at +6 is 56. Champion at +9 is 209. The stage always wins — a QF (50) beats an R16 (25) every time.';
+  wrap.append(gd, ex);
+  return wrap;
+}
+
+function renderGuide() {
+  const box = $('guide-sections'); if (!box) return;
+  const he = getLang() === 'he';
+  $('guide-kicker').textContent = t('guide_kicker');
+  $('guide-title').innerHTML = t('guide_title');
+  $('guide-back-label').textContent = t('guide_back');
+  box.innerHTML = '';
+  GUIDE.forEach((s, i) => {
+    const sec = document.createElement('div'); sec.className = 'guide-sec'; sec.id = 'guide-' + s.key;
+    const head = document.createElement('div'); head.className = 'guide-sec-head';
+    const num = document.createElement('span'); num.className = 'guide-num'; num.textContent = i + 1;
+    const ttl = document.createElement('h3'); ttl.className = 'guide-h'; ttl.textContent = s[he ? 'he' : 'en'].t;
+    head.append(num, ttl);
+    const art = document.createElement('div'); art.className = 'guide-art'; art.innerHTML = s.svg;
+    const body = document.createElement('p'); body.className = 'guide-b'; body.textContent = s[he ? 'he' : 'en'].b;
+    sec.append(head, art, body);
+    if (s.score) sec.appendChild(buildScoreTable(he));
+    box.appendChild(sec);
+  });
+}
+
+function showGuide(anchor, ret) {
+  S.guideReturn = ret || 's1';
+  renderGuide();
+  show('s-guide');
+  const sc = $('guide-scroll'); if (sc) sc.scrollTop = 0;
+  if (anchor) { const el = $('guide-' + anchor); if (el) setTimeout(() => el.scrollIntoView({ block: 'start', behavior: 'smooth' }), 80); }
 }
 
 // ── language ──────────────────────────────────────────────────────────────────
@@ -1837,7 +2222,9 @@ function wire() {
   $('story-share').addEventListener('click', () => doShareStory('story-share', 'story_share'));
   $('story-share-cta').addEventListener('click', () => doShareStory('story-share-cta', 'story_share_cta'));
   window.addEventListener('hashchange', openStoryFromHash);
-  $('howto-link').addEventListener('click', () => showHowto(false));
+  $('howto-link').addEventListener('click', () => { track('guide_open', { from: 'home' }); showGuide(null, 's1'); });
+  $('guide-back').addEventListener('click', () => show(S.guideReturn || 's1'));
+  $('scoring-link').addEventListener('click', () => { track('guide_open', { from: 'result' }); showGuide('score', 's6'); });
   $('ht-next').addEventListener('click', htNext);
   $('btn-lang').addEventListener('click', () => {
     const to = getLang() === 'he' ? 'en' : 'he';
@@ -1847,6 +2234,7 @@ function wire() {
     updateStoryBtn();
     if ($('s-stories').classList.contains('active')) openStoriesHub();
     else if ($('s-story').classList.contains('active') && curArticle) openStory(curArticle);
+    if ($('s-guide').classList.contains('active')) renderGuide();
     track('lang_switch', { to });
   });
   $('btn-skip-team').addEventListener('click', () => skip('team'));
@@ -1865,10 +2253,13 @@ function wire() {
     S.mentality = Math.min(Math.max((+tacSlider.value || 0) / 100, 0), 1);
     const cur = $('tac-current'); if (cur) cur.textContent = mentName(S.mentality);
     tacSlider.setAttribute('aria-valuetext', mentName(S.mentality));
+    updateWinPct(); // the chance moves live as you drag — the heart of the decision room
   });
   $('group-cta').addEventListener('click', () => track('group_join', { from: 'result' }));
   $('daily-group-link').addEventListener('click', () => track('group_join', { from: 'board' }));
   $('btn-again').addEventListener('click', () => { resetGame(); show('s1'); });
+  $('btn-swap').addEventListener('click', () => { track('swap_open'); showSwap(); });
+  $('swap-cancel').addEventListener('click', () => show('s6')); // return to the existing result (don't re-arm the board submit)
   $('lb-save').addEventListener('click', () => {
     const v = setNick($('lb-nick').value);
     if (!v) { $('lb-nick').focus(); return; }
@@ -1928,6 +2319,10 @@ window.__gxiProofMark = (c, J, xi, ok, tryNo) => {
   Object.assign(S, { xi: keep.xi, challenge: keep.ch, challengeOk: keep.ok, tryNo: keep.tn });
   return { en, he };
 };
+
+// test hook: open the daily board for a given challenge (the driver stubs fetch with
+// synthetic rows so the GloryScore ranking/render can be verified without a live write)
+window.__gxiOpenBoard = (c) => openBoard(c, 's1');
 
 loadData()
   .then(() => { wire(); updateLangButton(); updateDailyBtn(); updateStoryBtn(); if (!openStoryFromHash()) show('s1'); })

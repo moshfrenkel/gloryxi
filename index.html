@@ -168,6 +168,7 @@
   <div class="board-head">
     <h2 id="board-title" class="board-title"></h2>
     <p id="board-sub" class="board-sub t-cap"></p>
+    <p id="board-best" class="board-best t-cap" hidden></p>
   </div>
   <div id="board-state" class="board-state" role="status"></div>
   <ol id="board-list" class="board-list" aria-label="Daily leaderboard"></ol>
@@ -228,6 +229,21 @@
   </div>
   <div class="hint-line t-cap" data-i18n="s3_hint">TAP A PLAYER, THEN TAP A POSITION</div>
   <div id="player-list" role="list" aria-label="Squad"></div>
+  <!-- live control meter: team lines (weak link in coral) + title odds as the XI fills -->
+  <div id="draft-meter" class="draft-meter" hidden>
+    <div class="dm-lines" aria-label="Team lines">
+      <div class="dm-line" data-line="def"><span class="dm-k t-cap" data-i18n="sp_def">DEF</span><span class="dm-bar"><i></i></span><span class="dm-val">50</span></div>
+      <div class="dm-line" data-line="mid"><span class="dm-k t-cap" data-i18n="sp_mid">MID</span><span class="dm-bar"><i></i></span><span class="dm-val">50</span></div>
+      <div class="dm-line" data-line="att"><span class="dm-k t-cap" data-i18n="sp_att">ATT</span><span class="dm-bar"><i></i></span><span class="dm-val">50</span></div>
+    </div>
+    <div id="dm-odds" class="dm-odds" hidden aria-live="polite">
+      <span class="dm-odds-cap t-cap" data-i18n="dm_odds">TITLE ODDS</span>
+      <span class="dm-odd"><span class="dm-odd-k t-cap" data-i18n="dm_champ">CHAMP</span><b id="dm-champ">–</b></span>
+      <span class="dm-odd"><span class="dm-odd-k t-cap" data-i18n="dm_final">FINAL</span><b id="dm-final">–</b></span>
+      <span class="dm-odd"><span class="dm-odd-k t-cap" data-i18n="dm_qf">QF+</span><b id="dm-qf">–</b></span>
+    </div>
+    <div id="dm-building" class="dm-building t-cap" data-i18n="dm_building" hidden>ODDS UNLOCK NEAR A FULL XI</div>
+  </div>
   <button id="board-toggle" class="board-strip">
     <svg width="22" height="15" viewBox="0 0 22 15" aria-hidden="true"><rect x="1" y="1" width="20" height="13" fill="none" stroke="#2BD4C0" stroke-width="1.3"/><line x1="11" y1="1" x2="11" y2="14" stroke="#2BD4C0" stroke-width="1.3"/><circle cx="11" cy="7.5" r="2.6" fill="none" stroke="#2BD4C0" stroke-width="1.3"/></svg>
     <span class="t-cap" data-i18n="board_see">SEE MY TEAM SO FAR</span>
@@ -309,6 +325,14 @@
       <span id="tac-opp-name" class="tac-opp-name" dir="auto"></span>
       <span id="tac-read" class="tac-read t-cap"></span>
     </div>
+    <!-- the decision room: their lines on the left, YOUR live chance on the right -->
+    <div class="tac-matchup">
+      <div class="tac-opp-lines" id="tac-opp-lines" aria-label="Opponent lines"></div>
+      <div class="tac-win">
+        <b id="tac-win-pct" class="tac-win-pct">–</b>
+        <span class="tac-win-cap t-cap" id="tac-win-cap"></span>
+      </div>
+    </div>
     <input id="tac-slider" class="tac-slider" type="range" min="0" max="100" value="50" step="1"
            aria-label="match approach" aria-valuetext="balanced">
     <div class="tac-ticks t-cap">
@@ -319,6 +343,7 @@
       <span data-i18n="ment_allout">ALL-OUT</span>
     </div>
     <div id="tac-current" class="tac-current"></div>
+    <div class="tac-winhint t-cap" data-i18n="tac_winhint">YOUR CHANCE — MOVES WITH YOUR APPROACH</div>
   </div>
   <button id="btn-next-match" class="slab slab-hot">RUN MATCH 1</button>
 </div>
@@ -332,6 +357,12 @@
     <div id="verdict-proof" class="verdict-proof" hidden></div>
     <div id="verdict-record" class="verdict-record"></div>
     <div id="verdict-avg" class="t-cap verdict-avg"></div>
+    <div id="verdict-glory" class="verdict-glory" hidden></div>
+    <button id="scoring-link" class="scoring-link t-cap" hidden data-i18n="gs_how">HOW IS GLORYSCORE EARNED?</button>
+  </div>
+  <div id="loss-summary" class="loss-summary" hidden>
+    <div id="loss-peak" class="loss-row loss-peak"></div>
+    <div id="loss-weak" class="loss-row loss-weak"></div>
   </div>
   <div class="t-cap tracklist-label" data-i18n="xi_label">YOUR ALL-TIME XI</div>
   <div class="result-pitch">
@@ -357,6 +388,7 @@
       <p id="lb-note" class="lb-note" data-i18n="lb_note">A nickname + your result only, for the daily board. Pick a name that doesn't identify you. No tracking.</p>
     </div>
   </div>
+  <button id="btn-swap" class="slab slab-gold btn-swap" hidden data-i18n="sw_cta">SWAP ONE &amp; RUN IT BACK</button>
   <div class="action-row">
     <button id="btn-share" class="slab slab-hot" data-i18n="share">SHARE</button>
     <button id="btn-again" class="slab slab-line" data-i18n="again">PLAY AGAIN</button>
@@ -369,6 +401,50 @@
       <svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><path d="M1.5 8 q9 -7 17 -3.5 M14 1.5 l5.2 3.1 l-5.8 2.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </span>
   </a>
+</div>
+
+<!-- S-GUIDE — how it works (meters, odds, tactics, end screen, GloryScore) -->
+<div id="s-guide" class="screen">
+  <div class="status-strip story-top">
+    <button id="guide-back" class="story-back-top" aria-label="Back">
+      <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M7 1 L1 7 L7 13 M1 7 H19" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="t-cap" id="guide-back-label"></span>
+    </button>
+    <div class="t-cap" id="guide-kicker"></div>
+  </div>
+  <div class="guide-scroll" id="guide-scroll">
+    <div class="guide-title" id="guide-title"></div>
+    <div id="guide-sections"></div>
+  </div>
+</div>
+
+<!-- S-SWAP — swap one player & run it back (Sprint 3) -->
+<div id="s-swap" class="screen">
+  <div class="status-strip">
+    <div class="t-cap" data-i18n="sw_kicker">RUN IT BACK</div>
+  </div>
+  <div class="swap-head">
+    <div class="swap-title" data-i18n="sw_title">SWAP ONE.<br>GO AGAIN.</div>
+    <div class="t-cap swap-sub" id="swap-sub"></div>
+  </div>
+  <div class="board-pitch swap-pitch">
+    <svg viewBox="0 0 375 520" preserveAspectRatio="none" class="pitch-lines" aria-hidden="true">
+      <rect x="12" y="12" width="351" height="496" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+      <line x1="12" y1="260" x2="363" y2="260" stroke="#EDE8DF" stroke-width="1"/>
+      <circle cx="187.5" cy="260" r="46" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+      <rect x="97" y="12" width="181" height="58" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+      <rect x="97" y="450" width="181" height="58" fill="none" stroke="#EDE8DF" stroke-width="1"/>
+    </svg>
+    <div id="swap-slots"></div>
+  </div>
+  <div class="swap-tray">
+    <div class="t-cap swap-pick-label" id="swap-pick-label"></div>
+    <div id="swap-options" class="swap-options"></div>
+  </div>
+  <button id="swap-cancel" class="board-strip board-strip-close">
+    <span class="t-cap" data-i18n="sw_cancel">BACK TO THE RESULT</span>
+    <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 1 L7 8 L13 1" stroke="#EDE8DF" stroke-width="1.5" fill="none"/></svg>
+  </button>
 </div>
 
 <!-- S-STORY — Dante's daily article reader -->

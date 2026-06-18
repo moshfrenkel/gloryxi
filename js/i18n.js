@@ -137,6 +137,39 @@ const D = {
   top_assists: { en: 'TOP ASSISTS', he: 'מלך הבישולים' },
   tourney_stars: { en: 'TOURNAMENT STARS', he: 'כוכבי הטורניר' },
 
+  // Sprint 1 — control engine (live draft meter + decision room)
+  dm_lines:    { en: 'YOUR LINES', he: 'הקווים שלך' },
+  dm_odds:     { en: 'TITLE ODDS', he: 'סיכויי הגביע' },
+  dm_champ:    { en: 'CHAMP', he: 'אלוף' },
+  dm_final:    { en: 'FINAL', he: 'גמר' },
+  dm_qf:       { en: 'QF+', he: 'רבע+' },
+  dm_building: { en: 'ODDS UNLOCK NEAR A FULL XI', he: 'הסיכויים נפתחים לקראת נבחרת מלאה' },
+  tac_win:     { en: 'WIN', he: 'ניצחון' },
+  tac_advance: { en: 'ADVANCE', he: 'העפלה' },
+  tac_their:   { en: 'THEY', he: 'הם' },
+  tac_winhint: { en: 'YOUR CHANCE — MOVES WITH YOUR APPROACH', he: 'הסיכוי שלך — זז עם הגישה' },
+
+  // Sprint 2 — GloryScore (position-primary board)
+  gs_label:    { en: 'GLORYSCORE', he: 'GLORYSCORE' },
+  gs_new:      { en: 'NEW BEST TODAY', he: 'שיא חדש להיום' },
+  gs_best:     { en: (n) => 'BEST TODAY ' + n, he: (n) => 'שיא היום ' + n },
+  gs_board_best: { en: (n) => 'YOUR BEST TODAY · ' + n + ' GLORY', he: (n) => 'השיא שלך היום · ' + n + ' גלורי' },
+  gs_try:      { en: (n) => 'try ' + n, he: (n) => 'ניסיון ' + n },
+
+  // Sprint 3 — "almost" loss screen + swap & replay
+  sw_cta:      { en: 'SWAP ONE & RUN IT BACK', he: 'החלף שחקן, ושחק שוב' },
+  sw_newteam:  { en: 'NEW TEAM', he: 'קבוצה חדשה' },
+  sw_kicker:   { en: 'RUN IT BACK', he: 'רוץ שוב' },
+  sw_title:    { en: 'SWAP ONE.<br>GO AGAIN.', he: 'מחליפים אחד,<br>ושוב לדרך.' },
+  sw_cancel:   { en: 'BACK TO THE RESULT', he: 'חזרה לתוצאה' },
+
+  // explainer / how-it-works screen
+  guide_link:  { en: 'HOW IT WORKS', he: 'איך זה עובד' },
+  gs_how:      { en: 'HOW IS GLORYSCORE EARNED?', he: 'איך צוברים GloryScore?' },
+  guide_kicker:{ en: 'GLORYXI · HOW IT WORKS', he: 'GloryXI · איך זה עובד' },
+  guide_title: { en: 'THE RULES OF<br>THE GAME', he: 'איך משחקים,<br>ואיך צוברים' },
+  guide_back:  { en: 'BACK', he: 'חזרה' },
+
   // stages + verdicts
   st_GROUP:   { en: 'GROUP', he: 'שלב הבתים' },
   st_R32:     { en: 'ROUND OF 32', he: '32 האחרונות' },
