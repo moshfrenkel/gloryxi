@@ -748,6 +748,49 @@ function legendRow(p) {
   return row;
 }
 
+// ── S-PICKYEAR (day 10): pick the World Cup your whole XI is drawn from ────────
+// host nations are fixed historical facts — a memory aid only, on each tile
+const WC_HOSTS = {
+  1930: ['Uruguay', 'אורוגוואי'], 1934: ['Italy', 'איטליה'], 1938: ['France', 'צרפת'],
+  1950: ['Brazil', 'ברזיל'], 1954: ['Switzerland', 'שווייץ'], 1958: ['Sweden', 'שוודיה'],
+  1962: ['Chile', "צ'ילה"], 1966: ['England', 'אנגליה'], 1970: ['Mexico', 'מקסיקו'],
+  1974: ['W. Germany', 'גרמניה'], 1978: ['Argentina', 'ארגנטינה'], 1982: ['Spain', 'ספרד'],
+  1986: ['Mexico', 'מקסיקו'], 1990: ['Italy', 'איטליה'], 1994: ['USA', 'ארה״ב'],
+  1998: ['France', 'צרפת'], 2002: ['Korea/Japan', 'קוריאה/יפן'], 2006: ['Germany', 'גרמניה'],
+  2010: ['South Africa', 'דרום אפריקה'], 2014: ['Brazil', 'ברזיל'], 2018: ['Russia', 'רוסיה'],
+  2022: ['Qatar', 'קטאר'], 2026: ['N. America', 'צפון אמריקה']
+};
+
+function showPickYear() {
+  const grid = $('pickyear-grid');
+  grid.innerHTML = '';
+  const heIdx = getLang() === 'he' ? 1 : 0;
+  // years come straight from the data, so the grid always matches what's drawable
+  const years = [...new Set(S.players.map(p => p.y))].sort((a, b) => b - a);
+  for (const y of years) {
+    const host = WC_HOSTS[y];
+    const btn = document.createElement('button');
+    btn.className = 'pick-year';
+    btn.setAttribute('role', 'listitem');
+    const yr = document.createElement('span'); yr.className = 'py-year'; yr.textContent = y;
+    const hs = document.createElement('span'); hs.className = 'py-host'; hs.textContent = host ? host[heIdx] : '';
+    btn.append(yr, hs);
+    btn.addEventListener('click', () => choosePickYear(y));
+    grid.appendChild(btn);
+  }
+  show('s-pickyear');
+}
+
+function choosePickYear(y) {
+  track('daily_pickyear', { day: 10, year: y });
+  // clone the challenge so the injected filter never leaks onto the shared array entry.
+  // no rpt: every World Cup has ≥13 nations, plenty for 11 distinct picks — one nation once.
+  S.challenge = { ...S.challenge, flt: { years: [y] } };
+  S.pickedYear = y;
+  S.skips.year = 0;            // the year is locked — kill the "NEW YEAR" reroll
+  if (seenHowto()) showLegends(); else showHowto(true);
+}
+
 // ── S5 tournament (vidiprinter) ───────────────────────────────────────────────
 const stageName = (s) => t('st_' + s);
 const stageVerdict = (s) => t('vd_' + s);
@@ -1322,7 +1365,9 @@ function challengeMark(c, J) {
   if (!c || !J) return '';
   const he = getLang() === 'he', R = J.record;
   const r = { sv: challengeValue(c, J), ga: R.ga, avg: Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11), gf: R.gf, tries: S.tryNo || 0, gd: R.gf - R.ga, gk_r: S.xi.GK ? S.xi.GK.r : null };
-  return (he ? 'ההישג שלך: ' : 'YOUR MARK: ') + dimDetail(dayDimension(c), r, he) + ' · ' + shortStage(J.finalStage);
+  // day 10: lead with the World Cup the player chose — that's the whole story
+  const wc = (c.pickYear && c.flt && c.flt.years) ? t('picky_mark', c.flt.years[0]) + ' · ' : '';
+  return wc + (he ? 'ההישג שלך: ' : 'YOUR MARK: ') + dimDetail(dayDimension(c), r, he) + ' · ' + shortStage(J.finalStage);
 }
 
 // human-readable evidence of HOW you met (or missed) a win-condition day — '' for filter/social days
@@ -1369,6 +1414,8 @@ function buildScoreRow(c, J) {
     top_assister: ma ? String(ma.name).slice(0, 40) : null,
     top_assist_a: ma ? ma.n : null,
     top_assist_rank: ma ? ma.rank : null,
+    // day 10 only: the World Cup this run was built from (needs a wc_year column on the table)
+    ...(c.pickYear && c.flt && c.flt.years ? { wc_year: c.flt.years[0] } : {}),
   };
 }
 
@@ -1470,6 +1517,12 @@ async function openBoard(c, ret) {
       + (r.ok === true ? ' ✓' : r.ok === false ? ' ✗' : '')
       + (r.tries ? ' · ' + t('gs_try', r.tries) : '');
     li.append(rank, nick, glory, det);
+    // day 10: show which World Cup this run was drawn from
+    if (r.wc_year) {
+      const wc = document.createElement('span'); wc.className = 'b-wc';
+      wc.textContent = t('picky_mark', r.wc_year);
+      li.appendChild(wc);
+    }
     if (r.top_scorer) {
       const sc = document.createElement('span'); sc.className = 'b-scorer';
       const place = (rk) => rk ? (he ? ' · מקום ' : ' · #') + rk : '';
@@ -1530,7 +1583,8 @@ function showResult() {
   const R = J.record;
   $('verdict-record').textContent = t('record', R.w, R.d, R.l, R.gf, R.ga);
   const avg = Math.round(SLOTS.reduce((s, k) => s + S.xi[k].r, 0) / 11);
-  $('verdict-avg').textContent = t('avg_rating', avg);
+  const wcYear = (S.challenge && S.challenge.pickYear && S.challenge.flt && S.challenge.flt.years) ? S.challenge.flt.years[0] : null;
+  $('verdict-avg').textContent = wcYear ? t('avg_rating_wc', avg, wcYear) : t('avg_rating', avg);
   // GloryScore + "your best today" — every run is a score that can be beaten (move 5)
   const dayN = S.challenge ? S.challenge.d : 0;
   const gScore = boardScore({ stage: J.finalStage, gd: R.gf - R.ga, day: dayN, avg });
@@ -2057,7 +2111,8 @@ function showDaily() {
           S.challenge = c;
           S.challengePlan = buildChallengePlan(c);
           bumpTries(c);
-          if (seenHowto()) showLegends(); else showHowto(true);
+          if (c.pickYear) showPickYear();
+          else if (seenHowto()) showLegends(); else showHowto(true);
         });
       }
       body.appendChild(play);
@@ -2319,21 +2374,38 @@ function wire() {
   $('board-back').addEventListener('click', () => show(S.boardReturn || 's1'));
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
-    const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0, proof: challengeProof(S.challenge, S.journey), mark: challengeMark(S.challenge, S.journey) } : null;
+    const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0, proof: challengeProof(S.challenge, S.journey), mark: challengeMark(S.challenge, S.journey), year: (S.challenge.pickYear && S.challenge.flt && S.challenge.flt.years) ? S.challenge.flt.years[0] : null } : null;
     shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily, tourneyAchievement(S.journey)).catch(console.error);
   });
 }
 
 applyStatic();
 // test hook: lets the E2E driver start any day's challenge regardless of date
-window.__gxiPlayDay = (d) => {
+window.__gxiPlayDay = (d, opts) => {
   const c = (S.challenges || []).find(x => x.d === d);
   if (!c) return false;
   resetGame();
   S.challenge = c;
   S.challengePlan = buildChallengePlan(c);
   bumpTries(c);
+  if (c.pickYear) {
+    const y = (opts && opts.year) || 1998;
+    S.challenge = { ...c, flt: { years: [y] } };
+    S.pickedYear = y;
+    S.skips.year = 0;
+  }
   showLegends();
+  return true;
+};
+// test hook: open the day-10 World Cup picker screen (the step __gxiPlayDay skips)
+window.__gxiPickYear = () => {
+  const c = (S.challenges || []).find(x => x.d === 10);
+  if (!c) return false;
+  resetGame();
+  S.challenge = c;
+  S.challengePlan = buildChallengePlan(c);
+  bumpTries(c);
+  showPickYear();
   return true;
 };
 // test hook: evaluate a challenge against a synthetic journey + XI

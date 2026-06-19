@@ -906,6 +906,28 @@ button:active, .player-row:active, .slot-option:active {
   rotate: -1.2deg; width: fit-content;
 }
 .legend-sub { margin-top: 8px; line-height: 1.7; }
+
+/* S-PICKYEAR — day 10 World Cup chooser: chalk tiles on the board */
+#pickyear-grid {
+  flex: 1; overflow-y: auto; align-content: start;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px;
+  padding: 14px 16px 22px;
+}
+.pick-year {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; min-height: 76px; padding: 10px 6px 8px; cursor: pointer;
+  background: transparent; color: var(--bone);
+  border: 1.5px solid rgba(245,197,24,0.55);
+  box-shadow: 3px 3px 0 var(--gold-dim); rotate: -0.6deg;
+  transition: border-color 120ms;
+}
+.pick-year:nth-child(even) { rotate: 0.7deg; }
+.pick-year:active { translate: 2px 2px; box-shadow: 1px 1px 0 var(--gold-dim); }
+.pick-year:hover, .pick-year:focus-visible { border-color: var(--hot); }
+.pick-year:focus-visible { outline: 2px solid var(--hot); outline-offset: 2px; }
+.py-year { font-family: var(--chalk); font-weight: 700; font-size: 34px; line-height: 1; color: var(--gold); }
+.py-host { font-size: 10.5px; opacity: 0.7; }
+
 #legend-list { flex: 1; overflow-y: auto; padding: 0 0 8px 10px; }
 /* chalk-outline rating tag (not a solid plate) — analytical, drawn */
 #legend-list .p-rating {
@@ -1286,6 +1308,9 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 .board-li .b-nick { flex: 1; min-width: 0; color: var(--bone); font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-li .b-det { flex: 0 0 auto; color: var(--grey, #9a8f80); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 12px; }
 .board-li .b-scorer { flex-basis: 100%; padding-inline-start: 36px; color: var(--gold); font-size: 11.5px; opacity: 0.92; }
+.board-li .b-wc { flex-basis: 100%; margin: 3px 0 0; margin-inline-start: 36px; align-self: start; width: fit-content;
+  background: rgba(43,212,192,0.16); color: var(--hot); border: 1px solid rgba(43,212,192,0.5);
+  padding: 1px 9px 2px; font-weight: 700; font-size: 11.5px; }
 .board-li.me { background: rgba(245,197,24,0.14); border-inline-start: 3px solid var(--gold); }
 .board-li.me .b-nick { color: var(--gold); }
 .b-you { color: var(--gold); font-size: 9px; letter-spacing: 0.12em; margin-inline-start: 6px; }

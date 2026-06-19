@@ -294,7 +294,7 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
   x.fillText('AVERAGE RATING  ' + avg, 60, H - 92);
   x.fillStyle = GREY;
   x.font = '24px "Space Grotesk", sans-serif';
-  x.fillText('Every nation · every year · 1930—2026', 60, H - 54);
+  x.fillText(daily && daily.year ? 'Childhood World Cup · ' + daily.year + ' only' : 'Every nation · every year · 1930—2026', 60, H - 54);
   x.fillStyle = champion ? GOLD : BONE;
   x.font = '600 26px "Space Grotesk", sans-serif';
   x.textAlign = 'right';

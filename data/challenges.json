@@ -173,10 +173,11 @@
   "date": "2026-06-20",
   "t_en": "CHILDHOOD WORLD CUP",
   "t_he": "מונדיאל הילדות",
-  "x_en": "Players only from the first World Cup you remember.",
-  "x_he": "רק שחקנים מהמונדיאל הראשון שאתה זוכר.",
+  "x_en": "Pick the first World Cup you remember — then your whole XI is drawn only from it.",
+  "x_he": "בחר את המונדיאל הראשון שאתה זוכר, וכל ההרכב שלך ייבנה רק ממנו.",
   "g_en": "YOUR FIRST WORLD CUP ONLY",
-  "g_he": "רק המונדיאל הראשון שלך"
+  "g_he": "רק המונדיאל הראשון שלך",
+  "pickYear": true
  },
  {
   "d": 11,

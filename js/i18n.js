@@ -15,6 +15,12 @@ const D = {
                 he: 'ללא קשר לפיפ"א · נתונים: Fjelstul World Cup Database (CC-BY-SA 4.0) · בלי תמונות שחקנים<br>בלי עוגיות · ספירות אנונימיות, ובבחירתך כינוי + תוצאה לטבלה היומית (שרת באירופה, נמחק בסוף הטורניר) · בלי מידע אישי מזהה' },
   a11y_link:  { en: 'Accessibility statement', he: 'הצהרת נגישות' },
 
+  // S-PICKYEAR — day 10 "childhood World Cup" year picker
+  picky_kicker: { en: 'STEP 1 · YOUR WORLD CUP', he: 'שלב 1 · המונדיאל שלך' },
+  picky_title:  { en: 'CHILDHOOD<br>WORLD CUP', he: 'מונדיאל<br>הילדות' },
+  picky_sub:    { en: 'WHICH WORLD CUP DO YOU REMEMBER FIRST? YOUR ENTIRE XI IS DRAWN ONLY FROM IT.', he: 'מה המונדיאל הראשון שאתה זוכר? כל ההרכב שלך ייבנה רק ממנו.' },
+  picky_mark:   { en: (y) => 'WORLD CUP ' + y, he: (y) => 'מונדיאל ' + y },
+
   // S-STORY — Dante's daily article
   story_today: { en: "TODAY'S STORY", he: 'כתבת היום' },
   story_kicker_line: { en: 'DANTE OLIVERA · THE DAILY STORY', he: 'דאנטה אוליברה · הסיפור היומי' },
@@ -190,6 +196,7 @@ const D = {
   record:     { en: (w, d, l, gf, ga) => w + 'W ' + d + 'D ' + l + 'L   ·   GOALS ' + gf + '–' + ga,
                 he: (w, d, l, gf, ga) => w + ' נצ\' · ' + d + ' תיקו · ' + l + ' הפ\'   ·   שערים ' + gf + '–' + ga },
   avg_rating: { en: (v) => 'AVERAGE RATING ' + v + ' · 1930—2026', he: (v) => 'דירוג ממוצע ' + v + ' · 1930—2026' },
+  avg_rating_wc: { en: (v, y) => 'AVERAGE RATING ' + v + ' · WORLD CUP ' + y, he: (v, y) => 'דירוג ממוצע ' + v + ' · מונדיאל ' + y },
   xi_label:   { en: 'YOUR ALL-TIME XI', he: 'נבחרת העל שלך' },
   share:      { en: 'SHARE', he: 'שתף' },
   again:      { en: 'PLAY AGAIN', he: 'עוד משחק' },
