@@ -182,37 +182,15 @@
  {
   "d": 11,
   "date": "2026-06-21",
-  "t_en": "TODAY'S NATIONS",
-  "t_he": "הנבחרת של היום",
-  "x_en": "Field a player from a nation playing in the real World Cup today.",
-  "x_he": "שבץ שחקן ממדינה שמשחקת היום במונדיאל האמיתי.",
-  "g_en": "A NATION PLAYING TODAY",
-  "g_he": "מדינה שמשחקת היום במציאות",
-  "reqAny": [
-   "Spain",
-   "Saudi Arabia",
-   "Belgium",
-   "Iran",
-   "Uruguay",
-   "Cape Verde",
-   "New Zealand",
-   "Egypt"
-  ],
-  "win": [
-   {
-    "k": "anyNation",
-    "nations": [
-     "Spain",
-     "Saudi Arabia",
-     "Belgium",
-     "Iran",
-     "Uruguay",
-     "Cape Verde",
-     "New Zealand",
-     "Egypt"
-    ]
-   }
-  ]
+  "t_en": "ONE LINE, ONE FLAG",
+  "t_he": "קו אחד, דגל אחד",
+  "x_en": "Every line of your XI is a single nation across different World Cups — and no nation repeats between lines.",
+  "x_he": "כל קו בהרכב הוא נבחרת אחת לאורך מונדיאלים שונים, ואותה נבחרת לא חוזרת בשני קווים.",
+  "g_en": "ONE NATION PER LINE",
+  "g_he": "נבחרת אחת לכל קו",
+  "flt": {
+   "lineNation": true
+  }
  },
  {
   "d": 12,

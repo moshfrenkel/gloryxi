@@ -155,10 +155,71 @@ const decadeOf = (y) => y < 1940 ? 193 : Math.floor(y / 10);
 const ALL_DECADES = 9; // 30s 50s 60s 70s 80s 90s 00s 10s 20s — no 1940s cups
 const DECADE_LABEL = { 193: '30s', 195: '50s', 196: '60s', 197: '70s', 198: '80s', 199: '90s', 200: '00s', 201: '10s', 202: '20s' };
 
+// ── "one nation per line" challenge (flt.lineNation) ─────────────────────────
+// each formation line (GK/DF/MF/FW) locks to a SINGLE nation; a nation never
+// repeats across lines; within a line every player is from a DIFFERENT World Cup.
+// the line a player belongs to IS its position group (p.p), so all state is
+// derived live from S.xi — no separate bookkeeping to keep in sync.
+function lineNations() {                       // line(pos) -> locked nation (or undefined)
+  const m = {};
+  for (const s of SLOTS) { const p = S.xi[s]; if (p) m[p.p] = p.c; }
+  return m;
+}
+function lineYears(pos, exceptSlot) {          // World Cup years already used in a line
+  const ys = new Set();
+  for (const s of POS_SLOTS[pos] || []) { if (s === exceptSlot) continue; const p = S.xi[s]; if (p) ys.add(p.y); }
+  return ys;
+}
+function lineNationExcept(pos, slot) {         // a line's nation, ignoring one slot (for swaps)
+  for (const s of POS_SLOTS[pos] || []) { if (s === slot) continue; const p = S.xi[s]; if (p) return p.c; }
+  return null;
+}
+function otherLineNations(pos) {               // nations locked by the OTHER lines
+  const set = new Set();
+  for (const q of POS_ORDER) { if (q === pos) continue; const ln = lineNationExcept(q, null); if (ln) set.add(ln); }
+  return set;
+}
+function placedNames() { return new Set(Object.values(S.xi).map(p => p.c + '|' + p.n)); }
+// the line-completability oracle: max set of this nation's players in a position
+// with DISTINCT years AND DISTINCT names (Kuhn's bipartite matching, years ↔ names).
+// guarantees a chosen nation can actually fill a whole line from different cups.
+function lineMatch(c, pos, exclYears, exclNames) {
+  const adj = new Map();
+  for (const p of S.players) {
+    if (p.c !== c || p.p !== pos) continue;
+    if (exclYears.has(p.y) || exclNames.has(p.c + '|' + p.n)) continue;
+    if (!adj.has(p.y)) adj.set(p.y, []);
+    adj.get(p.y).push(p.n);
+  }
+  const matchName = new Map(); let res = 0;
+  const aug = (y, seen) => {
+    for (const nm of adj.get(y) || []) {
+      if (seen.has(nm)) continue; seen.add(nm);
+      if (!matchName.has(nm) || aug(matchName.get(nm), seen)) { matchName.set(nm, y); return true; }
+    }
+    return false;
+  };
+  for (const y of adj.keys()) if (aug(y, new Set())) res++;
+  return res;
+}
+// may player p be placed right now under the line-nation rules?
+function lineSlotOK(p) {
+  const pos = p.p, ln = lineNations();
+  if (ln[pos]) { if (ln[pos] !== p.c) return false; }            // line locked → same nation only
+  else if (Object.values(ln).includes(p.c)) return false;        // unlocked → nation must be free
+  const usedY = lineYears(pos);
+  if (usedY.has(p.y)) return false;                              // a different World Cup each time
+  const open = (POS_SLOTS[pos] || []).filter(s => !S.xi[s]).length; // slots still to fill (incl. this one)
+  const exclN = placedNames(); exclN.add(p.c + '|' + p.n);
+  const rest = lineMatch(p.c, pos, new Set([...usedY, p.y]), exclN);
+  return 1 + rest >= open;                                       // placing p must leave the line completable
+}
+
 // where may THIS player go right now — single source of truth for the draw
 // validator, the squad sheet and the hall of legends
 function eligibleSlots(p) {
   const f = challengeFlt();
+  if (f && f.lineNation) return lineSlotOK(p) ? slotsForPos(p.p) : [];
   let slots;
   if (f && f.pos) {
     if (!f.pos.includes(p.p)) return [];
@@ -186,7 +247,7 @@ function comboValid([c, y]) {
   if (f) {
     if (f.nations && !f.nations.includes(c)) return false;
     if (f.years && !f.years.includes(y)) return false;
-    if (!f.rpt && S.used.has(c)) return false;
+    if (!f.rpt && !f.lineNation && S.used.has(c)) return false; // lineNation repeats a nation within a line — gated by eligibleSlots instead
   } else if (S.used.has(c)) return false;
   if (!S.squads.has(c + '|' + y)) return false;
   return availableSquad(c, y).some(p => eligibleSlots(p).length > 0);
@@ -209,6 +270,17 @@ function pickCombo(constraint) {
     for (const [slot, dec] of Object.entries(f.slotEra)) if (!S.xi[slot]) need.add(dec);
     if (need.size) {
       const sub = pool.filter(([, y]) => need.has(decadeOf(y)));
+      if (sub.length) pool = sub;
+    }
+  }
+  // lineNation: keep serving the current open line's nation (a new World Cup each
+  // time) until that line is full, then the pool naturally opens a fresh nation
+  if (f && f.lineNation) {
+    const ln = lineNations();
+    const openLine = POS_ORDER.find(pos => ln[pos] && (POS_SLOTS[pos] || []).some(s => !S.xi[s]));
+    if (openLine) {
+      const yrs = lineYears(openLine);
+      const sub = pool.filter(([c, y]) => c === ln[openLine] && !yrs.has(y));
       if (sub.length) pool = sub;
     }
   }
@@ -375,11 +447,21 @@ function startDraw(constraint) {
 }
 
 function updateSkipBoxes(visible) {
+  // lineNation: "other nation" is allowed only before a line's nation is chosen,
+  // i.e. while the current draw is opening a NEW line — not while completing a
+  // locked one (the line's nation is committed). "other year" stays normal.
+  const f = challengeFlt();
+  let teamLock = false;
+  if (f && f.lineNation) {
+    const ln = lineNations();
+    teamLock = !!POS_ORDER.find(pos => ln[pos] && (POS_SLOTS[pos] || []).some(s => !S.xi[s]));
+  }
   for (const [key, ids] of [['team', ['btn-skip-team', 'btn-skip-team-s3']], ['year', ['btn-skip-year', 'btn-skip-year-s3']]]) {
+    const gate = (key === 'team' && teamLock) ? false : S.skips[key] > 0;
     for (const id of ids) {
       const el = $(id);
-      el.classList.toggle('avail', visible && S.skips[key] > 0);
-      el.disabled = !(visible && S.skips[key] > 0);
+      el.classList.toggle('avail', visible && gate);
+      el.disabled = !(visible && gate);
     }
   }
 }
@@ -398,6 +480,15 @@ function showSquad() {
   show('s3');
   renderPips();
   $('round-label').textContent = t('pick_n', Object.keys(S.xi).length + 1);
+  const flt = challengeFlt();
+  if (flt && flt.lineNation) {
+    const ln = lineNations();
+    const he = getLang() === 'he';
+    const fillPos = POS_ORDER.find(pos => ln[pos] === c && (POS_SLOTS[pos] || []).some(s => !S.xi[s]));
+    $('round-label').textContent = fillPos
+      ? (he ? 'משלים את ' : 'COMPLETING ') + posTitle(fillPos)
+      : (he ? 'קו חדש, נבחרת חדשה' : 'NEW LINE, NEW NATION');
+  }
   $('squad-spine').textContent = (c + ' · ' + y).toUpperCase();
   const sf = $('squad-flag');
   sf.src = flagSrc(c);
@@ -1769,6 +1860,16 @@ function weakestSlot() {
 // minus the "slot is free" check) — honours the active daily's challenge filters
 function swapEligible(p, slot, usedCountries, usedNames) {
   const f = challengeFlt();
+  if (f && f.lineNation) {                                       // line-nation day: stay in the line's nation + a fresh cup
+    const pos = SLOT_POS_GROUP[slot];
+    if (p.p !== pos) return false;
+    if (usedNames.has(p.c + '|' + p.n)) return false;
+    const lnOther = lineNationExcept(pos, slot);
+    if (lnOther) { if (p.c !== lnOther) return false; }          // multi-player line → must match its nation
+    else if (otherLineNations(pos).has(p.c)) return false;       // single-player line (GK) → just no cross-line dup
+    if (lnOther && lineYears(pos, slot).has(p.y)) return false;  // a different World Cup within the line
+    return true;
+  }
   if (f && f.pos) { if (!f.pos.includes(p.p)) return false; }   // pos-theme day: themed position, any slot
   else if (SLOT_POS_GROUP[slot] !== p.p) return false;          // normal: player's group must own this slot
   if (!(f && f.rpt) && usedCountries.has(p.c)) return false;    // one player per country (rpt lifts it)
