@@ -2207,6 +2207,11 @@ function showDaily() {
       x.className = 'daily-x';
       x.textContent = chDesc(c);
       body.appendChild(x);
+      // how today's board ranks you — the gate note only where meeting the rule actually gates
+      const rk = document.createElement('div');
+      rk.className = 'daily-rank';
+      rk.textContent = (c.win && c.win.length) ? t('rank_gate') : t('rank_far');
+      body.appendChild(rk);
       const play = document.createElement('button');
       play.id = 'daily-play';
       play.className = 'slab slab-hot daily-play';

@@ -217,6 +217,12 @@ const D = {
   daily_oneshot: { en: 'ONE SHOT — ALREADY PLAYED', he: 'ניסיון אחד, וכבר שיחקת' },
   try_n:      { en: (n) => 'ATTEMPT ' + n, he: (n) => 'ניסיון ' + n },
 
+  // how today's leaderboard ranks you — shown at the challenge entry
+  rank_gate:  { en: 'HOW TODAY RANKS: meet the rule and you sit above everyone who missed it. Among those who met it, the further you go the higher you rank.',
+                he: 'איך מדורגים היום: מי שעמד באתגר יושב מעל כל מי שלא עמד בו. בין העומדים, ככל שהגעת רחוק יותר כך אתה גבוה יותר.' },
+  rank_far:   { en: 'HOW TODAY RANKS: by how far you go, goal difference breaks ties.',
+                he: 'איך מדורגים היום: לפי כמה רחוק הגעת, והפרש שערים שובר שוויון.' },
+
   // daily achievement "mark" — the metric that defines best-of-the-day
   rs_champ:   { en: 'CHAMPION', he: 'אלוף' },
   mk_far:     { en: (st, gd) => 'YOUR MARK: ' + st + ' (' + gd + ')',      he: (st, gd) => 'ההישג שלך: ' + st + ' (' + gd + ')' },

@@ -1192,6 +1192,9 @@ html[data-lang="he"] .daily-sub, html[data-lang="he"] .daily-x, html[data-lang="
 .daily-t { font-family: 'Anton', 'Arial Narrow', sans-serif; font-size: 16px; color: var(--bone); letter-spacing: 0.03em; }
 html[data-lang="he"] .daily-t { font-family: system-ui, 'Segoe UI', sans-serif; font-weight: 700; letter-spacing: 0; }
 .daily-x { font-size: 13.5px; color: var(--bone); opacity: 0.85; line-height: 1.5; margin-top: 5px; max-width: 300px; }
+.daily-rank { font-size: 11.5px; line-height: 1.45; color: var(--hot); margin-top: 8px; max-width: 300px;
+  padding-inline-start: 9px; border-inline-start: 2px solid rgba(43,212,192,0.55); }
+html[data-lang="he"] .daily-rank { direction: rtl; }
 .daily-tag {
   flex: none; font-size: 9.5px; border: 1px solid var(--hair);
   padding: 2px 8px 2px 13px; position: relative;
