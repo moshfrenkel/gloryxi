@@ -1315,6 +1315,12 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 .board-li.me .b-nick { color: var(--gold); }
 .b-you { color: var(--gold); font-size: 9px; letter-spacing: 0.12em; margin-inline-start: 6px; }
 .board-foot { color: var(--grey, #9a8f80); text-align: center; padding: 14px; letter-spacing: 0.1em; border: none; }
+.board-divider { display: flex; align-items: center; gap: 10px; padding: 9px 12px; color: var(--grey, #9a8f80);
+  font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; border: none; opacity: 0.85; }
+.board-divider::before, .board-divider::after { content: ''; flex: 1; height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(237,232,223,0.28) 0 6px, transparent 6px 12px); }
+.board-divider ~ .board-li:not(.me) { opacity: 0.62; }
+.board-divider ~ .board-li:not(.me) .b-glory { color: var(--grey, #9a8f80); }
 
 /* ── per-match tactics bar — mentality slider + opponent read (S5) ───────────── */
 #tactics-bar {

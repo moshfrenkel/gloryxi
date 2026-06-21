@@ -1568,9 +1568,12 @@ function renderLeaderboardRow(c, J) {
 // furthest, then goal-diff. Every finished RUN is its own line — play 100 times,
 // get 100 lines, each ranked where it lands. No collapsing by name.
 const okRank = (r) => r.ok === true ? 2 : r.ok === false ? 0 : 1;
-// position-primary: GloryScore first (stage dominates, gd breaks within-stage ties),
-// then met-the-rule, then the day's special magnitude, then raw goal-diff.
-const lbCmp = (a, b) => boardScore(b) - boardScore(a) || okRank(b) - okRank(a) || (b.sv || 0) - (a.sv || 0) || b.gd - a.gd;
+// gate-first on challenge (win) days: meeting the daily rule is the price of entry,
+// so every passer ranks above every non-passer regardless of how deep they ran —
+// then GloryScore (stage dominates, gd breaks within-stage ties), then the day's
+// special magnitude (sv), then raw goal-diff. On filter/social days ok is null for
+// everyone, so okRank is inert and GloryScore leads exactly as before.
+const lbCmp = (a, b) => okRank(b) - okRank(a) || boardScore(b) - boardScore(a) || (b.sv || 0) - (a.sv || 0) || b.gd - a.gd;
 function rankBoard(rows) {
   const ranked = rows.filter(r => (r.nick || '').trim()).sort(lbCmp);
   return { ranked, count: ranked.length };
@@ -1592,9 +1595,16 @@ async function openBoard(c, ret) {
   if (!ranked.length) { st.textContent = t('lb_empty'); return; }
   st.hidden = true;
   const dim = dayDimension(c), he = getLang() === 'he';
+  const isWinDay = !!(c.win && c.win.length);   // gate-first board: passers sit above a divider, non-passers below
+  let dividerShown = false;
   const myRows = myRowIds(c.date);
   const list = $('board-list');
   ranked.forEach((r, i) => {
+    if (isWinDay && !dividerShown && r.ok === false) {
+      const dv = document.createElement('li'); dv.className = 'board-divider t-cap';
+      dv.textContent = he ? 'מתחת לקו · לא עמדו באתגר היום' : 'below the line · missed today’s rule';
+      list.appendChild(dv); dividerShown = true;
+    }
     const mine = r.id != null && myRows.has(r.id);
     const li = document.createElement('li');
     li.className = 'board-li' + (mine ? ' me' : '');
