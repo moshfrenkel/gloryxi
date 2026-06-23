@@ -1632,7 +1632,11 @@ async function openBoard(c, ret) {
   const rows = await fetchBoard(c.date, viewing ? viewing.code : null);
   if (rows === null) { st.textContent = t('lb_error'); return; }
   const anyNamed = rows.some(r => (r.nick || '').trim());
-  if (!anyNamed) { st.textContent = viewing ? t('lg_empty') : t('lb_empty'); return; }
+  if (!anyNamed) {
+    if (viewing) renderLeagueEmpty(st, viewing);   // friendly "invite the crew" state
+    else st.textContent = t('lb_empty');
+    return;
+  }
   st.hidden = true;
   const ctx = { dim: dayDimension(c), he: getLang() === 'he', isWinDay: !!(c.win && c.win.length), myRows: myRowIds(c.date) };
   const list = $('board-list');
@@ -1804,6 +1808,31 @@ function buildCreateForm(capLabel) {
   return wrap;
 }
 // the create/manage card on the daily screen — lists every league you're in
+// friendly empty state for a league with no runs yet today: invite + play
+function renderLeagueEmpty(st, lg) {
+  st.hidden = false; st.innerHTML = '';
+  const msg = document.createElement('p'); msg.className = 'be-msg'; msg.textContent = t('lg_empty_cta'); st.appendChild(msg);
+  const share = document.createElement('button'); share.type = 'button'; share.className = 'be-btn be-share'; share.textContent = t('lg_share'); share.addEventListener('click', () => shareLeague(lg)); st.appendChild(share);
+  const play = document.createElement('button'); play.type = 'button'; play.className = 'be-btn'; play.textContent = t('lg_play'); play.addEventListener('click', startTodayChallenge); st.appendChild(play);
+}
+// your name on every league table — set/change it here so boards aren't full of dupes
+function promptNick() {
+  const v = (prompt(t('lg_name_prompt'), getNick()) || '').trim();
+  if (v) { setNick(v); renderLeaguePanel(); }
+}
+function buildWhoLine() {
+  const who = document.createElement('div'); who.className = 'dl-who';
+  const nick = getNick();
+  if (nick) {
+    const lbl = document.createElement('span'); lbl.className = 'dl-who-lbl'; lbl.textContent = t('lg_playing_as') + ' ';
+    const val = document.createElement('span'); val.className = 'dl-who-nick'; val.dir = 'auto'; val.textContent = nick;
+    const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'dl-who-edit'; edit.textContent = t('lg_change_name'); edit.addEventListener('click', promptNick);
+    who.append(lbl, val, edit);
+  } else {
+    who.appendChild(lgBtn('dl-btn dl-setname', t('lg_set_name'), promptNick));
+  }
+  return who;
+}
 function renderLeaguePanel() {
   const host = $('daily-league'); if (!host) return;
   if (!lbConfigured()) { host.hidden = true; return; }
@@ -1811,6 +1840,7 @@ function renderLeaguePanel() {
   const leagues = getLeagues();
   if (leagues.length) {
     host.appendChild(lgBtn('dl-btn dl-share dl-play', t('lg_play'), startTodayChallenge));
+    host.appendChild(buildWhoLine());
     const cap = document.createElement('div'); cap.className = 't-cap dl-cap'; cap.textContent = t('lg_your'); host.appendChild(cap);
     leagues.forEach(lg => {
       const card = document.createElement('div'); card.className = 'dl-league';
