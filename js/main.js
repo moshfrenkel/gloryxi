@@ -8,7 +8,7 @@ import { createTournament, mentalityAt, computeTeamScores, computeTeamElo, build
 import { shareResult, shareStory } from './share.js';
 import { t, getLang, setLang, applyStatic } from './i18n.js';
 import { kitFor, jerseySVG } from './kits.js';
-import { lbConfigured, getNick, setNick, submitDailyScore, fetchBoard } from './leaderboard.js';
+import { lbConfigured, getNick, setNick, submitDailyScore, fetchBoard, getLeagues, addLeague, removeLeague } from './leaderboard.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -730,9 +730,14 @@ const CODE3 = {
 };
 function codeOf(c) { return CODE3[c] || c.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase(); }
 
-function renderPitchInto(containerId, withMeta, onSlotTap) {
+function renderPitchInto(containerId, withMeta, onSlotTap, showGoals) {
   const box = $(containerId);
   box.innerHTML = '';
+  // per-slot goal tally — mirrors the share card, shown on the result pitch
+  const goalsBySlot = {};
+  if (showGoals && S.journey) {
+    for (const m of (S.journey.journey || [])) for (const s of (m.scorers || [])) if (s.slot) goalsBySlot[s.slot] = (goalsBySlot[s.slot] || 0) + 1;
+  }
   for (const slot of SLOTS) {
     const [x, y] = SLOT_XY[slot];
     const d = document.createElement('div');
@@ -764,6 +769,15 @@ function renderPitchInto(containerId, withMeta, onSlotTap) {
       r.className = 'b-r';
       r.textContent = p.r;
       jersey.appendChild(r);
+      // goal tally — gold-ringed disc, top-left of the jersey (only on the result pitch)
+      const g = goalsBySlot[slot] || 0;
+      if (g > 0) {
+        const gb = document.createElement('div');
+        gb.className = 'b-goals';
+        gb.textContent = g;
+        gb.setAttribute('aria-label', (getLang() === 'he' ? 'שערים: ' : 'goals: ') + g);
+        jersey.appendChild(gb);
+      }
       f.appendChild(jersey);
 
       const nm = document.createElement('div');
@@ -1507,6 +1521,9 @@ function buildScoreRow(c, J) {
     top_assist_rank: ma ? ma.rank : null,
     // day 10 only: the World Cup this run was built from (needs a wc_year column on the table)
     ...(c.pickYear && c.flt && c.flt.years ? { wc_year: c.flt.years[0] } : {}),
+    // private leagues: the run counts for EVERY league you're in (parallel arrays).
+    // never added for solo players, so their inserts are unaffected.
+    ...(getLeagues().length ? { league_codes: getLeagues().map(l => l.code), league_names: getLeagues().map(l => l.name) } : {}),
   };
 }
 
@@ -1578,27 +1595,76 @@ function rankBoard(rows) {
   const ranked = rows.filter(r => (r.nick || '').trim()).sort(lbCmp);
   return { ranked, count: ranked.length };
 }
+// board view pills: "everyone" + one pill per league you're in. S.boardView holds
+// 'global' or a league code. With no leagues there's nothing to switch — pills hidden.
+function renderBoardScopePills(leagues) {
+  const el = $('board-scope'); if (!el) return;
+  if (!leagues.length) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false; el.innerHTML = '';
+  const mk = (view, label) => {
+    const b = document.createElement('button');
+    b.className = 'scope-btn' + (S.boardView === view ? ' on' : '');
+    b.dir = 'auto'; b.textContent = label;
+    b.addEventListener('click', () => { if (S.boardView !== view) { S.boardView = view; openBoard(S.boardChallenge); } });
+    return b;
+  };
+  el.appendChild(mk('global', t('lg_global')));
+  leagues.forEach(l => el.appendChild(mk(l.code, l.name)));
+}
+
 async function openBoard(c, ret) {
   if (!c || !lbConfigured()) return;
-  S.boardReturn = ret || 's1';
-  $('board-title').textContent = 'DAILY #' + c.d + ' · ' + chTitle(c);
-  $('board-sub').textContent = c.date;
+  if (ret) S.boardReturn = ret;
+  S.boardChallenge = c;
+  const leagues = getLeagues();
+  // resolve the active view: a league you're still in, else everyone
+  const viewing = (S.boardView && S.boardView !== 'global') ? leagues.find(l => l.code === S.boardView) : null;
+  if (!viewing) S.boardView = 'global';
+  renderBoardScopePills(leagues);
+  $('board-title').textContent = viewing ? viewing.name : ('DAILY #' + c.d + ' · ' + chTitle(c));
+  $('board-sub').textContent = viewing ? ('DAILY #' + c.d + ' · ' + c.date) : c.date;
   const bestToday = gloryBest(c.date), bestEl = $('board-best');
   if (bestEl) { if (bestToday > 0) { bestEl.textContent = t('gs_board_best', bestToday); bestEl.hidden = false; } else bestEl.hidden = true; }
   $('board-list').innerHTML = '';
   const st = $('board-state'); st.hidden = false; st.textContent = t('lb_loading');
   show('s-board');
   await flushPendingRun();   // make sure a just-finished run is in before we read the board
-  const rows = await fetchBoard(c.date);
+  const rows = await fetchBoard(c.date, viewing ? viewing.code : null);
   if (rows === null) { st.textContent = t('lb_error'); return; }
-  const { ranked, count } = rankBoard(rows);
-  if (!ranked.length) { st.textContent = t('lb_empty'); return; }
+  const anyNamed = rows.some(r => (r.nick || '').trim());
+  if (!anyNamed) { st.textContent = viewing ? t('lg_empty') : t('lb_empty'); return; }
   st.hidden = true;
-  const dim = dayDimension(c), he = getLang() === 'he';
-  const isWinDay = !!(c.win && c.win.length);   // gate-first board: passers sit above a divider, non-passers below
-  let dividerShown = false;
-  const myRows = myRowIds(c.date);
+  const ctx = { dim: dayDimension(c), he: getLang() === 'he', isWinDay: !!(c.win && c.win.length), myRows: myRowIds(c.date) };
   const list = $('board-list');
+  const total = rows.filter(r => (r.nick || '').trim()).length;
+
+  if (viewing) {
+    // a single league's runs, as a flat board
+    const { ranked } = rankBoard(rows);
+    appendRunRows(list, ranked, ctx);
+    appendFoot(list, t('lb_players', total));
+    return;
+  }
+
+  // "everyone" view: solo players first, then private leagues competing (top-5)
+  const hasCodes = (r) => Array.isArray(r.league_codes) && r.league_codes.length > 0;
+  const { ranked: soloRanked } = rankBoard(rows.filter(r => !hasCodes(r)));
+  appendSection(list, t('lg_sec_solo'));
+  if (soloRanked.length) appendRunRows(list, soloRanked, ctx);
+  else appendFoot(list, ctx.he ? 'אין עדיין משתתפים בודדים היום' : 'no solo players yet today');
+
+  const leaguesAgg = aggregateLeagues(rows.filter(hasCodes));
+  if (leaguesAgg.length) {
+    appendSection(list, t('lg_sec_leagues'));
+    appendLeagueRows(list, leaguesAgg, ctx.he);
+  }
+  appendFoot(list, t('lb_players', total));
+}
+
+// one finished RUN as a board row (shared by the global solo list and a league's own board)
+function appendRunRows(list, ranked, ctx) {
+  const { dim, he, isWinDay, myRows } = ctx;
+  let dividerShown = false;
   ranked.forEach((r, i) => {
     if (isWinDay && !dividerShown && r.ok === false) {
       const dv = document.createElement('li'); dv.className = 'board-divider t-cap';
@@ -1634,8 +1700,146 @@ async function openBoard(c, ret) {
     }
     list.appendChild(li);
   });
-  const foot = document.createElement('li'); foot.className = 'board-foot t-cap'; foot.textContent = t('lb_players', count);
-  list.appendChild(foot);
+}
+function appendSection(list, label) { const h = document.createElement('li'); h.className = 'board-section t-cap'; h.textContent = label; list.appendChild(h); }
+function appendFoot(list, txt) { const foot = document.createElement('li'); foot.className = 'board-foot t-cap'; foot.textContent = txt; list.appendChild(foot); }
+
+// group the day's league runs by league, score each = sum of its best-5 players' runs.
+// each row carries parallel league_codes[]/league_names[]; a run feeds every league on it.
+function aggregateLeagues(rows) {
+  const byCode = new Map();
+  for (const r of rows) {
+    const codes = Array.isArray(r.league_codes) ? r.league_codes : [];
+    const names = Array.isArray(r.league_names) ? r.league_names : [];
+    const nick = (r.nick || '').trim();
+    const sc = boardScore(r);
+    codes.forEach((code, idx) => {
+      if (!code) return;
+      let g = byCode.get(code);
+      if (!g) { g = { code, name: '', best: new Map() }; byCode.set(code, g); }
+      if (!g.name && names[idx]) g.name = names[idx];
+      if (!nick) return;
+      if (!g.best.has(nick) || sc > g.best.get(nick)) g.best.set(nick, sc);   // best run per member
+    });
+  }
+  const out = [];
+  for (const g of byCode.values()) {
+    const top5 = [...g.best.values()].sort((a, b) => b - a).slice(0, 5);
+    out.push({ code: g.code, name: g.name || g.code, members: g.best.size, score: top5.reduce((s, x) => s + x, 0) });
+  }
+  return out.sort((a, b) => b.score - a.score || b.members - a.members);
+}
+function appendLeagueRows(list, leagues, he) {
+  const mineCodes = new Set(getLeagues().map(l => l.code));
+  leagues.forEach((g, i) => {
+    const li = document.createElement('li');
+    li.className = 'board-li league-li' + (mineCodes.has(g.code) ? ' me' : '');
+    const rank = document.createElement('span'); rank.className = 'b-rank'; rank.textContent = i + 1;
+    const nick = document.createElement('span'); nick.className = 'b-nick'; nick.dir = 'auto'; nick.textContent = g.name;
+    const glory = document.createElement('span'); glory.className = 'b-glory'; glory.textContent = g.score;
+    const det = document.createElement('span'); det.className = 'b-det';
+    det.textContent = t('lg_members', g.members) + ' · ' + t('lg_top5');
+    li.append(rank, nick, glory, det);
+    list.appendChild(li);
+  });
+}
+
+// ── private league: create / join / share ─────────────────────────────────────
+// A league is a shared { code, name }. The code travels in the invite link and in
+// each score row; the board filters by it. No accounts, no backend beyond one column.
+function makeLeagueCode() {
+  let s = '';
+  while (s.length < 5) s += Math.random().toString(36).slice(2);
+  return s.slice(0, 5);
+}
+function leagueLink(lg) {
+  return location.origin + location.pathname + '?liga=' + encodeURIComponent(lg.code) + '&ln=' + encodeURIComponent(lg.name);
+}
+function shareLeague(lg) {
+  const msg = t('lg_invite', lg.name) + '\n' + leagueLink(lg);
+  track('league_share', { code: lg.code });
+  if (navigator.share) navigator.share({ text: msg }).catch(() => {});
+  else window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+function lgBtn(cls, label, onClick) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = label;
+  b.addEventListener('click', onClick); return b;
+}
+function copyLeagueLink(lg, btn) {
+  if (!navigator.clipboard) return;
+  navigator.clipboard.writeText(leagueLink(lg)).then(() => { btn.textContent = t('lg_copied'); setTimeout(() => { btn.textContent = t('lg_copy'); }, 1600); }).catch(() => {});
+}
+// jump straight into today's challenge — same path as the daily list's PLAY button.
+function startTodayChallenge() {
+  const c = todayChallenge();
+  if (!c) { showDaily(); return; }
+  const done = dailyDone();
+  if (c.oneShot && done[c.d]) { showDaily(); return; }   // the final: already played
+  track('daily_play', { day: c.d, via: 'league' });
+  resetGame();
+  S.challenge = c;
+  S.challengePlan = buildChallengePlan(c);
+  bumpTries(c);
+  if (c.pickYear) showPickYear();
+  else if (seenHowto()) showLegends(); else showHowto(true);
+}
+// the name + create form (used for the first league and for "new league")
+function buildCreateForm(capLabel) {
+  const wrap = document.createElement('div'); wrap.className = 'dl-create';
+  const cap = document.createElement('div'); cap.className = 't-cap dl-cap'; cap.textContent = capLabel; wrap.appendChild(cap);
+  const inp = document.createElement('input');
+  inp.className = 'dl-input'; inp.type = 'text'; inp.maxLength = 40; inp.dir = 'auto'; inp.placeholder = t('lg_name_ph');
+  wrap.appendChild(inp);
+  const create = lgBtn('dl-btn dl-share', t('lg_create'), () => {
+    const name = inp.value.trim(); if (!name) { inp.focus(); return; }
+    const code = makeLeagueCode();
+    addLeague(code, name);
+    track('league_create', { code });
+    S.boardView = code;
+    renderLeaguePanel();
+    shareLeague({ code, name });
+  });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); create.click(); } });
+  wrap.appendChild(create);
+  return wrap;
+}
+// the create/manage card on the daily screen — lists every league you're in
+function renderLeaguePanel() {
+  const host = $('daily-league'); if (!host) return;
+  if (!lbConfigured()) { host.hidden = true; return; }
+  host.hidden = false; host.innerHTML = '';
+  const leagues = getLeagues();
+  if (leagues.length) {
+    host.appendChild(lgBtn('dl-btn dl-share dl-play', t('lg_play'), startTodayChallenge));
+    const cap = document.createElement('div'); cap.className = 't-cap dl-cap'; cap.textContent = t('lg_your'); host.appendChild(cap);
+    leagues.forEach(lg => {
+      const card = document.createElement('div'); card.className = 'dl-league';
+      const nm = document.createElement('div'); nm.className = 'dl-name'; nm.dir = 'auto'; nm.textContent = lg.name; card.appendChild(nm);
+      const row = document.createElement('div'); row.className = 'dl-row';
+      row.appendChild(lgBtn('dl-btn dl-share', t('lg_share'), () => shareLeague(lg)));
+      row.appendChild(lgBtn('dl-btn', t('lg_copy'), (e) => copyLeagueLink(lg, e.currentTarget)));
+      card.appendChild(row);
+      card.appendChild(lgBtn('dl-leave', t('lg_leave'), () => {
+        if (confirm(t('lg_leave_q'))) { removeLeague(lg.code); if (S.boardView === lg.code) S.boardView = 'global'; renderLeaguePanel(); }
+      }));
+      host.appendChild(card);
+    });
+    host.appendChild(buildCreateForm(t('lg_add_another')));
+  } else {
+    host.appendChild(buildCreateForm(t('lg_create_h')));
+  }
+}
+// join from a shared invite link: ?liga=<code>&ln=<name> — adds to your leagues
+function joinLeagueFromQuery() {
+  try {
+    const p = new URLSearchParams(location.search);
+    const code = p.get('liga'); if (!code) return false;
+    addLeague(code, p.get('ln') || code);
+    S.boardView = code;
+    track('league_join', { code });
+    history.replaceState(null, '', location.origin + location.pathname);
+    return true;
+  } catch (_) { return false; }
 }
 
 // ── S6 back cover ─────────────────────────────────────────────────────────────
@@ -1717,7 +1921,7 @@ function showResult() {
   const sl = $('scoring-link'); if (sl) sl.hidden = false;
   document.querySelector('#s6 .tracklist-label').textContent = S.teamName;
 
-  renderPitchInto('result-slots', true);
+  renderPitchInto('result-slots', true, null, true);
   const ach = tourneyAchievement(J);
   const badge = $('tourney-badge');
   if (badge) {
@@ -2550,7 +2754,14 @@ window.__gxiProofMark = (c, J, xi, ok, tryNo) => {
 window.__gxiOpenBoard = (c) => openBoard(c, 's1');
 
 loadData()
-  .then(() => { wire(); updateLangButton(); updateDailyBtn(); updateStoryBtn(); if (!openStoryFromHash()) show('s1'); })
+  .then(() => {
+    wire(); updateLangButton(); updateDailyBtn(); updateStoryBtn();
+    const joined = joinLeagueFromQuery();
+    renderLeaguePanel();
+    if (openStoryFromHash()) { /* a #story= link wins */ }
+    else if (joined) show('s-daily');   // land an invited friend on today's challenge
+    else show('s1');
+  })
   .catch(err => {
     console.error('load failed', err);
     document.querySelector('#loading .load-cap').textContent = t('load_fail');

@@ -54,6 +54,27 @@ const D = {
   lb_you:     { en: 'YOU', he: 'אתה' },
   lb_players: { en: (n) => n + (n === 1 ? ' run today' : ' runs today'), he: (n) => n + ' ריצות היום' },
 
+  // private league
+  lg_create_h:  { en: 'PRIVATE LEAGUE', he: 'ליגה פרטית' },
+  lg_name_ph:   { en: 'League name (e.g. Mosh’s crew)', he: 'שם הליגה (למשל השרוטים של מוש)' },
+  lg_create:    { en: 'CREATE LEAGUE', he: 'צור ליגה' },
+  lg_your:      { en: 'YOUR LEAGUES', he: 'הליגות שלך' },
+  lg_play:      { en: 'START PLAYING →', he: 'התחל לשחק →' },
+  lg_add_another: { en: 'NEW LEAGUE', he: 'ליגה נוספת' },
+  lg_share:     { en: 'INVITE ON WHATSAPP', he: 'הזמן בוואטסאפ' },
+  lg_copy:      { en: 'COPY LINK', he: 'העתק קישור' },
+  lg_copied:    { en: 'Link copied', he: 'הקישור הועתק' },
+  lg_leave:     { en: 'leave league', he: 'צא מהליגה' },
+  lg_leave_q:   { en: 'Leave this league?', he: 'לצאת מהליגה הזו?' },
+  lg_mine:      { en: 'MY LEAGUE', he: 'הליגה שלי' },
+  lg_global:    { en: 'EVERYONE', he: 'כל המשתתפים' },
+  lg_empty:     { en: 'No league runs yet today — share the invite link.', he: 'עוד אין ריצות בליגה היום, שתף את קישור ההזמנה.' },
+  lg_invite:    { en: (n) => 'Join my GloryXI league "' + n + '" — one daily challenge, our own table:', he: (n) => 'הצטרפו לליגת GloryXI שלי "' + n + '" — אתגר יומי אחד, טבלה רק שלנו:' },
+  lg_sec_solo:  { en: 'SOLO PLAYERS', he: 'משתתפים בודדים' },
+  lg_sec_leagues: { en: 'PRIVATE LEAGUES', he: 'ליגות פרטיות' },
+  lg_members:   { en: (n) => n + (n === 1 ? ' member' : ' members'), he: (n) => n === 1 ? 'חבר אחד' : n + ' חברים' },
+  lg_top5:      { en: 'top 5', he: 'טופ 5' },
+
   // How-to overlay
   ht_title:   { en: 'HOW TO PLAY', he: 'איך משחקים' },
   ht1_t:      { en: 'THE DRAW', he: 'ההגרלה' },

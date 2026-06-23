@@ -608,6 +608,15 @@ button:active, .player-row:active, .slot-option:active {
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 0 1.5px #171108;
 }
+/* goal tally — white disc with a gold ring, top-left (mirrors the share card's scorer ball) */
+.b-jersey .b-goals {
+  position: absolute; top: -2px; left: -2px;
+  min-width: 19px; height: 19px; padding: 0 4px; border-radius: 10px;
+  background: #f4f4f4; color: #1a1305;
+  font-family: 'Inter', 'Heebo', sans-serif; font-weight: 800; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.55), 0 0 0 1.5px var(--gold);
+}
 /* dark name pill under the magnet */
 .b-fill .b-name {
   margin-top: 5px;
@@ -1301,9 +1310,11 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 
 /* ── in-app daily leaderboard screen ───────────────────────────────────── */
 #s-board { padding: 0 18px 18px; }
-.board-head { padding: 10px 4px 8px; }
-.board-title { font-family: var(--chalk); font-weight: 700; color: var(--gold); font-size: clamp(24px, 7vw, 34px); line-height: 1.05; margin: 0; }
-.board-sub { color: var(--grey, #9a8f80); margin: 4px 0 0; letter-spacing: 0.12em; }
+/* stack the header vertically (the generic .board-head is flex, which jams title +
+   date + scope pills onto one row) */
+#s-board .board-head { display: block; padding: 14px 2px 12px; border-bottom: 1px solid var(--hair); }
+.board-title { font-family: var(--chalk); font-weight: 700; color: var(--gold); font-size: clamp(22px, 6.4vw, 32px); line-height: 1.08; margin: 0; }
+.board-sub { color: var(--grey, #9a8f80); margin: 6px 0 0; letter-spacing: 0.12em; }
 .board-state { color: var(--bone); padding: 22px 6px; font-family: 'Space Grotesk', system-ui, sans-serif; }
 .board-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
 .board-li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 10px; padding: 11px 12px; border-bottom: 1px solid rgba(237,232,223,0.12); }
@@ -1428,6 +1439,33 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 
 .board-best { color: var(--hot); margin: 4px 0 0; letter-spacing: 0.1em; font-weight: 700; }
 .board-best[hidden] { display: none; }
+
+/* ── private league: panel (daily screen) + board scope toggle ─────────────── */
+.daily-league { margin: 16px 22px 18px; padding: 18px 18px 16px; border: 1px solid var(--hair); border-radius: 16px; background: rgba(43,212,192,0.06); }
+.daily-league[hidden] { display: none; }
+.daily-league .dl-cap { color: var(--hot); letter-spacing: 0.2em; font-size: 12px; display: block; margin-bottom: 6px; }
+.daily-league .dl-name { font-family: var(--chalk); font-weight: 700; color: var(--gold); font-size: 27px; line-height: 1.12; margin: 2px 0 16px; }
+.daily-league .dl-input { width: 100%; margin: 2px 0 14px; padding: 13px 14px; border: 1px solid var(--hair); border-radius: 11px; background: rgba(0,0,0,0.28); color: var(--bone); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 16px; }
+.daily-league .dl-input:focus { outline: none; border-color: var(--hot); }
+.daily-league .dl-row { display: flex; flex-direction: column; gap: 10px; }
+.daily-league .dl-btn { width: 100%; padding: 14px 16px; border: 1px solid var(--hot); border-radius: 32px; background: transparent; color: var(--bone); font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.05em; cursor: pointer; transition: transform .12s, background .12s; }
+.daily-league .dl-btn:active { transform: translateY(1px); }
+.daily-league .dl-share { background: var(--hot); color: #04201d; border-color: var(--hot); }
+.daily-league .dl-leave { display: block; margin: 12px auto 0; background: none; border: none; color: var(--grey, #9a8f80); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 12.5px; letter-spacing: 0.04em; text-decoration: underline; cursor: pointer; }
+.daily-league .dl-play { margin-bottom: 18px; padding: 15px 16px; font-size: 15px; }
+.daily-league .dl-league { padding: 2px 0; }
+.daily-league .dl-league .dl-name { font-size: 22px; margin: 0 0 12px; }
+.daily-league .dl-league + .dl-league { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hair); }
+.daily-league .dl-create:not(:first-child) { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--hair); }
+.board-scope { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; padding: 5px; background: rgba(0,0,0,0.25); border-radius: 18px; }
+.board-scope[hidden] { display: none; }
+.board-scope .scope-btn { flex: 0 1 auto; max-width: 48vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 16px; border: none; border-radius: 24px; background: transparent; color: var(--grey, #9a8f80); font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.04em; cursor: pointer; transition: background .12s, color .12s; }
+.board-scope .scope-btn.on { background: var(--hot); color: #04201d; }
+.board-section { list-style: none; margin: 22px 0 6px; padding: 0 4px 8px; color: var(--gold); letter-spacing: 0.22em; font-size: 12px; border-bottom: 1px solid var(--hair); }
+.board-section:first-child { margin-top: 8px; }
+.board-li { padding-top: 13px; padding-bottom: 13px; }
+.board-li.league-li .b-nick { color: var(--gold); }
+
 .board-li .b-glory {
   flex: 0 0 auto; font-family: 'Anton', 'Arial Narrow', sans-serif;
   font-size: 22px; line-height: 1; color: var(--gold); font-variant-numeric: tabular-nums;
