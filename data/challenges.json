@@ -285,17 +285,15 @@
  {
   "d": 17,
   "date": "2026-06-27",
-  "t_en": "GROUP LEADERS",
-  "t_he": "מובילי הבית",
-  "x_en": "Real group stage ends today: top your group.",
-  "x_he": "היום נסגרים הבתים האמיתיים: סיים ראשון בבית.",
-  "g_en": "FINISH TOP OF YOUR GROUP",
-  "g_he": "סיים ראשון בבית",
-  "win": [
-   {
-    "k": "rank1"
-   }
-  ]
+  "t_en": "FOUR DECADES",
+  "t_he": "מסע בעשורים",
+  "x_en": "Every line locks to the decade of its first pick, and no two lines share a decade — four lines, four eras of football.",
+  "x_he": "כל קו ננעל לעשור של השחקן הראשון שתבחר בו, ואין שני קווים מאותו עשור. ארבעה קווים, ארבע תקופות בכדורגל.",
+  "g_en": "ONE DECADE PER LINE, FOUR IN ALL",
+  "g_he": "עשור אחד לכל קו, ארבעה בהרכב",
+  "flt": {
+   "lineDecade": true
+  }
  },
  {
   "d": 18,

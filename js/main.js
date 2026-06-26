@@ -215,11 +215,49 @@ function lineSlotOK(p) {
   return 1 + rest >= open;                                       // placing p must leave the line completable
 }
 
+// ── "one decade per line" challenge (flt.lineDecade) ─────────────────────────
+// the parallel of lineNation, with DECADE in place of nation: each formation
+// line (GK/DF/MF/FW) locks to the decade of its first-placed player; a decade
+// never repeats across lines (four lines → four different decades); inside a
+// line every player shares that decade (any nation, same World Cup is fine).
+// the normal one-country-per-XI rule stays ON, so each line is a decade's worth
+// of DIFFERENT nations. all state is derived live from S.xi.
+function lineDecades() {                        // line(pos) -> locked decade (or undefined)
+  const m = {};
+  for (const s of SLOTS) { const p = S.xi[s]; if (p) m[p.p] = decadeOf(p.y); }
+  return m;
+}
+function lineDecadeExcept(pos, slot) {          // a line's decade, ignoring one slot (for swaps)
+  for (const s of POS_SLOTS[pos] || []) { if (s === slot) continue; const p = S.xi[s]; if (p) return decadeOf(p.y); }
+  return null;
+}
+function otherLineDecades(pos) {                // decades locked by the OTHER lines
+  const set = new Set();
+  for (const q of POS_ORDER) { if (q === pos) continue; const ld = lineDecadeExcept(q, null); if (ld !== null) set.add(ld); }
+  return set;
+}
+// may player p be placed right now under the line-decade rules?
+function lineDecadeOK(p) {
+  const pos = p.p, ld = lineDecades(), dec = decadeOf(p.y);
+  if (ld[pos] !== undefined) { if (ld[pos] !== dec) return false; }  // line locked → same decade only
+  else if (Object.values(ld).includes(dec)) return false;           // unlocked → decade must be free across lines
+  const open = (POS_SLOTS[pos] || []).filter(s => !S.xi[s]).length;  // slots still to fill (incl. this one)
+  const placed = placedNames(); let avail = 0; const seen = new Set();
+  for (const q of S.players) {                                      // enough DISTINCT humans of this decade+pos left?
+    if (q.p !== pos || decadeOf(q.y) !== dec) continue;
+    const key = q.c + '|' + q.n;
+    if (placed.has(key) || seen.has(key)) continue;
+    seen.add(key); avail++;
+  }
+  return avail >= open;                                             // placing p must leave the line completable
+}
+
 // where may THIS player go right now — single source of truth for the draw
 // validator, the squad sheet and the hall of legends
 function eligibleSlots(p) {
   const f = challengeFlt();
   if (f && f.lineNation) return lineSlotOK(p) ? slotsForPos(p.p) : [];
+  if (f && f.lineDecade) return lineDecadeOK(p) ? slotsForPos(p.p) : [];
   let slots;
   if (f && f.pos) {
     if (!f.pos.includes(p.p)) return [];
@@ -281,6 +319,20 @@ function pickCombo(constraint) {
     if (openLine) {
       const yrs = lineYears(openLine);
       const sub = pool.filter(([c, y]) => c === ln[openLine] && !yrs.has(y));
+      if (sub.length) pool = sub;
+    }
+  }
+  // lineDecade: while a locked line still has open slots, serve only its decade;
+  // otherwise (opening a new line) steer to a decade no line has claimed yet
+  if (f && f.lineDecade) {
+    const ld = lineDecades();
+    const openLine = POS_ORDER.find(pos => ld[pos] !== undefined && (POS_SLOTS[pos] || []).some(s => !S.xi[s]));
+    if (openLine) {
+      const sub = pool.filter(([, y]) => decadeOf(y) === ld[openLine]);
+      if (sub.length) pool = sub;
+    } else {
+      const used = new Set(Object.values(ld));
+      const sub = pool.filter(([, y]) => !used.has(decadeOf(y)));
       if (sub.length) pool = sub;
     }
   }
@@ -456,6 +508,8 @@ function updateSkipBoxes(visible) {
     const ln = lineNations();
     teamLock = !!POS_ORDER.find(pos => ln[pos] && (POS_SLOTS[pos] || []).some(s => !S.xi[s]));
   }
+  // lineDecade keeps the normal one-country rule, and the "other team" skip keeps
+  // the drawn year (so the decade is preserved) — no extra team lock needed.
   for (const [key, ids] of [['team', ['btn-skip-team', 'btn-skip-team-s3']], ['year', ['btn-skip-year', 'btn-skip-year-s3']]]) {
     const gate = (key === 'team' && teamLock) ? false : S.skips[key] > 0;
     for (const id of ids) {
@@ -488,6 +542,14 @@ function showSquad() {
     $('round-label').textContent = fillPos
       ? (he ? 'משלים את ' : 'COMPLETING ') + posTitle(fillPos)
       : (he ? 'קו חדש, נבחרת חדשה' : 'NEW LINE, NEW NATION');
+  }
+  if (flt && flt.lineDecade) {
+    const ld = lineDecades(), he = getLang() === 'he', dec = decadeOf(y);
+    const fillPos = POS_ORDER.find(pos => ld[pos] === dec && (POS_SLOTS[pos] || []).some(s => !S.xi[s]));
+    const lbl = DECADE_LABEL[dec] || '';
+    $('round-label').textContent = fillPos
+      ? (he ? 'משלים את ' : 'COMPLETING ') + posTitle(fillPos) + ' · ' + lbl
+      : (he ? 'קו חדש, עשור חדש · ' : 'NEW LINE, NEW DECADE · ') + lbl;
   }
   $('squad-spine').textContent = (c + ' · ' + y).toUpperCase();
   const sf = $('squad-flag');
@@ -2112,6 +2174,16 @@ function swapEligible(p, slot, usedCountries, usedNames) {
     if (lnOther) { if (p.c !== lnOther) return false; }          // multi-player line → must match its nation
     else if (otherLineNations(pos).has(p.c)) return false;       // single-player line (GK) → just no cross-line dup
     if (lnOther && lineYears(pos, slot).has(p.y)) return false;  // a different World Cup within the line
+    return true;
+  }
+  if (f && f.lineDecade) {                                       // line-decade day: replacement stays in the line's decade
+    const pos = SLOT_POS_GROUP[slot];
+    if (p.p !== pos) return false;
+    if (usedCountries.has(p.c)) return false;                    // one country per XI still holds
+    if (usedNames.has(p.c + '|' + p.n)) return false;           // never the same human twice
+    const dec = decadeOf(p.y), ldOther = lineDecadeExcept(pos, slot);
+    if (ldOther !== null) { if (dec !== ldOther) return false; } // multi-player line → must match its decade
+    else if (otherLineDecades(pos).has(dec)) return false;      // single-player line (GK) → no cross-line decade dup
     return true;
   }
   if (f && f.pos) { if (!f.pos.includes(p.p)) return false; }   // pos-theme day: themed position, any slot
