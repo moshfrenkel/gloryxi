@@ -298,20 +298,17 @@
  {
   "d": 18,
   "date": "2026-06-28",
-  "t_en": "COLD 1-0",
-  "t_he": "1-0 קר",
-  "x_en": "Win a knockout match exactly 1-0.",
-  "x_he": "נצח משחק נוקאאוט בדיוק 1-0.",
-  "g_en": "WIN A KNOCKOUT EXACTLY 1-0",
-  "g_he": "נצח נוקאאוט בדיוק 1-0",
-  "win": [
-   {
-    "k": "result",
-    "gf": 1,
-    "ga": 0,
-    "ko": true
-   }
-  ]
+  "t_en": "ELEVEN GLOVES",
+  "t_he": "אחד עשר כפפות",
+  "x_en": "Keepers in all 11 positions. Who is going to score?",
+  "x_he": "שוערים בכל 11 העמדות. מי הולך להבקיע פה?",
+  "g_en": "KEEPERS IN EVERY POSITION",
+  "g_he": "שוערים בכל העמדות",
+  "flt": {
+   "pos": [
+    "GK"
+   ]
+  }
  },
  {
   "d": 19,
@@ -387,34 +384,51 @@
  {
   "d": 23,
   "date": "2026-07-03",
-  "t_en": "HAT-TRICK",
-  "t_he": "שלושער",
-  "x_en": "One of your players scores three in a single match.",
-  "x_he": "שחקן שלך כובש שלושה שערים במשחק אחד.",
-  "g_en": "SCORE A HAT-TRICK",
-  "g_he": "שלושער במשחק אחד",
-  "win": [
-   {
-    "k": "hatTrick"
-   }
-  ]
+  "t_en": "FINALISTS ONLY",
+  "t_he": "רק גמר",
+  "x_en": "Only the two teams that reached the final of each World Cup. Champions and the ones who came up short.",
+  "x_he": "רק שתי הנבחרות שהגיעו לגמר של כל מונדיאל. האלופות, ואלה שעצרו צעד לפני.",
+  "g_en": "BUILD AN XI OF FINALISTS",
+  "g_he": "הרכב רק מנבחרות גמר",
+  "flt": {
+   "comboSet": [
+    "Uruguay|1930", "Argentina|1930",
+    "Italy|1934", "Czechoslovakia|1934",
+    "Italy|1938", "Hungary|1938",
+    "Uruguay|1950", "Brazil|1950",
+    "West Germany|1954", "Hungary|1954",
+    "Brazil|1958", "Sweden|1958",
+    "Brazil|1962", "Czechoslovakia|1962",
+    "England|1966", "West Germany|1966",
+    "Brazil|1970", "Italy|1970",
+    "West Germany|1974", "Netherlands|1974",
+    "Argentina|1978", "Netherlands|1978",
+    "Italy|1982", "West Germany|1982",
+    "Argentina|1986", "West Germany|1986",
+    "West Germany|1990", "Argentina|1990",
+    "Brazil|1994", "Italy|1994",
+    "France|1998", "Brazil|1998",
+    "Brazil|2002", "Germany|2002",
+    "Italy|2006", "France|2006",
+    "Spain|2010", "Netherlands|2010",
+    "Germany|2014", "Argentina|2014",
+    "France|2018", "Croatia|2018",
+    "Argentina|2022", "France|2022"
+   ]
+  }
  },
  {
   "d": 24,
   "date": "2026-07-04",
-  "t_en": "MINIMAL R16",
-  "t_he": "שמינית במינימום",
-  "x_en": "Pass the round of 16 in as few attempts as possible.",
-  "x_he": "עבור את שמינית הגמר בכמה שפחות ניסיונות.",
-  "g_en": "PASS R16 IN FEWEST TRIES",
-  "g_he": "עבור שמינית במינימום ניסיונות",
-  "tries": true,
-  "win": [
-   {
-    "k": "stage",
-    "min": "QF"
-   }
-  ]
+  "t_en": "ONE NATION, EVERY ERA",
+  "t_he": "נבחרת אחת, כל הדורות",
+  "x_en": "Your first pick locks a nation. The whole XI is then that nation across different World Cups.",
+  "x_he": "השחקן הראשון נועל נבחרת. כל ההרכב הוא אותה נבחרת לאורך מונדיאלים שונים.",
+  "g_en": "A WHOLE XI FROM ONE NATION",
+  "g_he": "הרכב שלם מנבחרת אחת",
+  "flt": {
+   "oneNationXI": true
+  }
  },
  {
   "d": 25,
@@ -536,14 +550,14 @@
  {
   "d": 32,
   "date": "2026-07-12",
-  "t_en": "TRUE WINGERS",
-  "t_he": "קיצוניים אמיתיים",
-  "x_en": "Every wide player in his natural position.",
-  "x_he": "כל שחקני האגף בעמדה הטבעית שלהם.",
-  "g_en": "WINGERS IN REAL POSITIONS",
-  "g_he": "אגפים בעמדה האמיתית",
+  "t_en": "TWO ON EVERYONE",
+  "t_he": "2 על כולם",
+  "x_en": "Pick a star, then a second player. The whole XI is just those two, across every World Cup they played, in any position.",
+  "x_he": "בחר כוכב, ואז שחקן שני. כל ההרכב הוא רק שניהם, לאורך כל מונדיאל ששיחקו בו, בכל עמדה.",
+  "g_en": "A WHOLE XI FROM TWO PLAYERS",
+  "g_he": "הרכב שלם משני שחקנים",
   "flt": {
-   "wideNatural": true
+   "twoStarXI": true
   }
  },
  {
@@ -597,14 +611,14 @@
  {
   "d": 36,
   "date": "2026-07-16",
-  "t_en": "AROUND THE WEAK LEGEND",
-  "t_he": "סביב האגדה החלשה",
-  "x_en": "Weakest legend + the strongest XI you can build around him.",
-  "x_he": "האגדה הצנועה ביותר + ההרכב הכי חזק שתבנה סביבה.",
-  "g_en": "WEAK LEGEND, STRONG XI",
-  "g_he": "אגדה חלשה, הרכב חזק",
+  "t_en": "AROUND THE WORLD",
+  "t_he": "סובב עולם",
+  "x_en": "Every line locks to the continent of its first pick, and no two lines share one. Four lines, four corners of the world.",
+  "x_he": "כל קו ננעל ליבשת של השחקן הראשון שתבחר בו, ואין שני קווים מאותה יבשת. ארבעה קווים, ארבע פינות של העולם.",
+  "g_en": "ONE CONTINENT PER LINE",
+  "g_he": "יבשת אחת לכל קו",
   "flt": {
-   "legendMin": true
+   "lineConfed": true
   }
  },
  {

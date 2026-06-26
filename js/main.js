@@ -155,6 +155,21 @@ const decadeOf = (y) => y < 1940 ? 193 : Math.floor(y / 10);
 const ALL_DECADES = 9; // 30s 50s 60s 70s 80s 90s 00s 10s 20s — no 1940s cups
 const DECADE_LABEL = { 193: '30s', 195: '50s', 196: '60s', 197: '70s', 198: '80s', 199: '90s', 200: '00s', 201: '10s', 202: '20s' };
 
+// ── confederation (continent) of a nation — for the "around the world" day ────
+// Australia was OFC until 2006, then AFC: split by World Cup year. All other
+// nations are stable, so a flat map is enough.
+const CONFED = {
+  Austria:'UEFA', Belgium:'UEFA', 'Bosnia and Herzegovina':'UEFA', Bulgaria:'UEFA', Croatia:'UEFA', 'Czech Republic':'UEFA', Czechoslovakia:'UEFA', Denmark:'UEFA', 'East Germany':'UEFA', England:'UEFA', France:'UEFA', Germany:'UEFA', Greece:'UEFA', Hungary:'UEFA', Iceland:'UEFA', Israel:'UEFA', Italy:'UEFA', Netherlands:'UEFA', 'Northern Ireland':'UEFA', Norway:'UEFA', Poland:'UEFA', Portugal:'UEFA', 'Republic of Ireland':'UEFA', Romania:'UEFA', Russia:'UEFA', Scotland:'UEFA', Serbia:'UEFA', 'Serbia and Montenegro':'UEFA', Slovakia:'UEFA', Slovenia:'UEFA', 'Soviet Union':'UEFA', Spain:'UEFA', Sweden:'UEFA', Switzerland:'UEFA', Turkey:'UEFA', Ukraine:'UEFA', Wales:'UEFA', 'West Germany':'UEFA', Yugoslavia:'UEFA',
+  Argentina:'CONMEBOL', Bolivia:'CONMEBOL', Brazil:'CONMEBOL', Chile:'CONMEBOL', Colombia:'CONMEBOL', Ecuador:'CONMEBOL', Paraguay:'CONMEBOL', Peru:'CONMEBOL', Uruguay:'CONMEBOL',
+  Canada:'CONCACAF', 'Costa Rica':'CONCACAF', Cuba:'CONCACAF', Curacao:'CONCACAF', 'El Salvador':'CONCACAF', Haiti:'CONCACAF', Honduras:'CONCACAF', Jamaica:'CONCACAF', Mexico:'CONCACAF', Panama:'CONCACAF', 'Trinidad and Tobago':'CONCACAF', 'United States':'CONCACAF',
+  Algeria:'CAF', Angola:'CAF', Cameroon:'CAF', 'Cape Verde':'CAF', 'DR Congo':'CAF', Egypt:'CAF', Ghana:'CAF', 'Ivory Coast':'CAF', Morocco:'CAF', Nigeria:'CAF', Senegal:'CAF', 'South Africa':'CAF', Togo:'CAF', Tunisia:'CAF', Zaire:'CAF',
+  China:'AFC', 'Dutch East Indies':'AFC', Iran:'AFC', Iraq:'AFC', Japan:'AFC', Jordan:'AFC', Kuwait:'AFC', 'North Korea':'AFC', Qatar:'AFC', 'Saudi Arabia':'AFC', 'South Korea':'AFC', 'United Arab Emirates':'AFC', Uzbekistan:'AFC',
+  'New Zealand':'OFC',
+};
+const confedOf = (p) => p.c === 'Australia' ? (p.y >= 2006 ? 'AFC' : 'OFC') : CONFED[p.c];
+const CONFED_LABEL = { UEFA:'אירופה', CONMEBOL:'דרום אמריקה', CONCACAF:'צפון ומרכז', CAF:'אפריקה', AFC:'אסיה', OFC:'אוקיאניה' };
+const CONFED_LABEL_EN = { UEFA:'UEFA', CONMEBOL:'CONMEBOL', CONCACAF:'CONCACAF', CAF:'CAF', AFC:'AFC', OFC:'OFC' };
+
 // ── "one nation per line" challenge (flt.lineNation) ─────────────────────────
 // each formation line (GK/DF/MF/FW) locks to a SINGLE nation; a nation never
 // repeats across lines; within a line every player is from a DIFFERENT World Cup.
@@ -252,12 +267,86 @@ function lineDecadeOK(p) {
   return avail >= open;                                             // placing p must leave the line completable
 }
 
+// ── "one confederation per line" challenge (flt.lineConfed) ──────────────────
+// the same shape as lineDecade, with CONTINENT in place of decade: each line
+// locks to the confederation of its first-placed player; no two lines share a
+// confederation (four lines → four continents). all state derived live from S.xi.
+function lineConfeds() {                         // line(pos) -> locked confederation (or undefined)
+  const m = {};
+  for (const s of SLOTS) { const p = S.xi[s]; if (p) m[p.p] = confedOf(p); }
+  return m;
+}
+function lineConfedExcept(pos, slot) {           // a line's confederation, ignoring one slot (for swaps)
+  for (const s of POS_SLOTS[pos] || []) { if (s === slot) continue; const p = S.xi[s]; if (p) return confedOf(p); }
+  return null;
+}
+function otherLineConfeds(pos) {                 // confederations locked by the OTHER lines
+  const set = new Set();
+  for (const q of POS_ORDER) { if (q === pos) continue; const cf = lineConfedExcept(q, null); if (cf != null) set.add(cf); }
+  return set;
+}
+// may player p be placed right now under the line-confederation rules?
+function lineConfedOK(p) {
+  const pos = p.p, lc = lineConfeds(), cf = confedOf(p);
+  if (cf == null) return false;                                     // unmapped nation (shouldn't happen)
+  if (lc[pos] !== undefined) { if (lc[pos] !== cf) return false; }  // line locked → same confederation only
+  else if (Object.values(lc).includes(cf)) return false;           // unlocked → confederation must be free across lines
+  const open = (POS_SLOTS[pos] || []).filter(s => !S.xi[s]).length; // slots still to fill (incl. this one)
+  const placed = placedNames(); let avail = 0; const seen = new Set();
+  for (const q of S.players) {                                     // enough DISTINCT humans of this confederation+pos left?
+    if (q.p !== pos || confedOf(q) !== cf) continue;
+    const key = q.c + '|' + q.n;
+    if (placed.has(key) || seen.has(key)) continue;
+    seen.add(key); avail++;
+  }
+  return avail >= open;                                            // placing p must leave the line completable
+}
+
+// ── "one nation, every era" challenge (flt.oneNationXI) ──────────────────────
+// the first player you place locks the WHOLE XI to his nation; every slot is
+// then filled from that nation across different World Cups (a cup may repeat,
+// players are distinct humans, positions are natural). one-country-once is off.
+function xiNation() { for (const s of SLOTS) { const p = S.xi[s]; if (p) return p.c; } return null; }
+// can nation c fill a whole XI (GK1/DF4/MF4/FW2) from DISTINCT humans?
+function nationFillsXI(c) {
+  const need = { GK: 1, DF: 4, MF: 4, FW: 2 };
+  const seen = { GK: new Set(), DF: new Set(), MF: new Set(), FW: new Set() };
+  for (const p of S.players) { if (p.c !== c || !seen[p.p]) continue; seen[p.p].add(p.n); }
+  return Object.entries(need).every(([pos, n]) => seen[pos].size >= n);
+}
+function oneNationOK(p) {
+  const nat = xiNation();
+  if (nat) return p.c === nat;            // locked → this nation only (slotsForPos keeps the position natural)
+  return nationFillsXI(p.c);              // first pick → only a nation that can complete a full XI
+}
+
+// ── "two on everyone" challenge (flt.twoStarXI) ──────────────────────────────
+// the entire XI is built from exactly TWO humans: pick 1 is your star (round 1
+// legend), pick 2 is anyone (round 2 draw). from then on only those two players
+// are drawn, across the World Cups they each played, placed in ANY slot, and the
+// same player/year may repeat (Messi at the back AND in midfield). placed copies
+// are cloned in place() so a repeat doesn't share one object reference.
+function xiStars() { const s = new Set(); for (const k of SLOTS) { const p = S.xi[k]; if (p) s.add(p.c + '|' + p.n); } return s; }
+function twoStarOK(p) {
+  const stars = xiStars(), key = p.c + '|' + p.n;
+  if (stars.size >= 2) return stars.has(key);     // locked → only the two anchors
+  if (stars.size === 1) return !stars.has(key);   // round 2 → a DIFFERENT human, becomes anchor 2
+  return true;                                     // round 1 → the star (any)
+}
+function comboHasStar([c, y], stars) {
+  const sq = S.squads.get(c + '|' + y) || [];
+  return sq.some(p => stars.has(p.c + '|' + p.n));
+}
+
 // where may THIS player go right now — single source of truth for the draw
 // validator, the squad sheet and the hall of legends
 function eligibleSlots(p) {
   const f = challengeFlt();
   if (f && f.lineNation) return lineSlotOK(p) ? slotsForPos(p.p) : [];
   if (f && f.lineDecade) return lineDecadeOK(p) ? slotsForPos(p.p) : [];
+  if (f && f.lineConfed) return lineConfedOK(p) ? slotsForPos(p.p) : [];
+  if (f && f.oneNationXI) return oneNationOK(p) ? slotsForPos(p.p) : [];
+  if (f && f.twoStarXI) return twoStarOK(p) ? freeSlots() : [];   // any slot — position is ignored
   let slots;
   if (f && f.pos) {
     if (!f.pos.includes(p.p)) return [];
@@ -276,6 +365,8 @@ function availableSquad(c, y) {
   const squad = S.squads.get(c + '|' + y) || [];
   const placed = new Set(Object.values(S.xi));
   if (!S.challenge) return squad.filter(p => !placed.has(p));
+  const f = challengeFlt();
+  if (f && f.twoStarXI) return squad.slice();   // two-star day: the same human may fill many slots (placed copies are clones)
   const names = new Set(Object.values(S.xi).map(p => p.c + '|' + p.n));
   return squad.filter(p => !placed.has(p) && !names.has(p.c + '|' + p.n));
 }
@@ -285,7 +376,9 @@ function comboValid([c, y]) {
   if (f) {
     if (f.nations && !f.nations.includes(c)) return false;
     if (f.years && !f.years.includes(y)) return false;
-    if (!f.rpt && !f.lineNation && S.used.has(c)) return false; // lineNation repeats a nation within a line — gated by eligibleSlots instead
+    if (f.comboSet && !f.comboSet.includes(c + '|' + y)) return false; // finalists day: only listed country|year squads
+    // lineNation / oneNationXI / twoStarXI deliberately repeat a nation — gated by eligibleSlots instead
+    if (!f.rpt && !f.lineNation && !f.oneNationXI && !f.twoStarXI && S.used.has(c)) return false;
   } else if (S.used.has(c)) return false;
   if (!S.squads.has(c + '|' + y)) return false;
   return availableSquad(c, y).some(p => eligibleSlots(p).length > 0);
@@ -333,6 +426,29 @@ function pickCombo(constraint) {
     } else {
       const used = new Set(Object.values(ld));
       const sub = pool.filter(([, y]) => !used.has(decadeOf(y)));
+      if (sub.length) pool = sub;
+    }
+  }
+  // oneNationXI: once the nation is locked, keep serving only that nation
+  if (f && f.oneNationXI) {
+    const nat = xiNation();
+    if (nat) { const sub = pool.filter(([c]) => c === nat); if (sub.length) pool = sub; }
+  }
+  // twoStarXI: once both anchors are set, serve only squads where one of them appears
+  if (f && f.twoStarXI) {
+    const stars = xiStars();
+    if (stars.size >= 2) { const sub = pool.filter(cb => comboHasStar(cb, stars)); if (sub.length) pool = sub; }
+  }
+  // lineConfed: same steering by confederation (the draw is a country, so map c→confed)
+  if (f && f.lineConfed) {
+    const lc = lineConfeds();
+    const openLine = POS_ORDER.find(pos => lc[pos] !== undefined && (POS_SLOTS[pos] || []).some(s => !S.xi[s]));
+    if (openLine) {
+      const sub = pool.filter(([c, y]) => confedOf({ c, y }) === lc[openLine]);
+      if (sub.length) pool = sub;
+    } else {
+      const used = new Set(Object.values(lc));
+      const sub = pool.filter(([c, y]) => !used.has(confedOf({ c, y })));
       if (sub.length) pool = sub;
     }
   }
@@ -551,6 +667,26 @@ function showSquad() {
       ? (he ? 'משלים את ' : 'COMPLETING ') + posTitle(fillPos) + ' · ' + lbl
       : (he ? 'קו חדש, עשור חדש · ' : 'NEW LINE, NEW DECADE · ') + lbl;
   }
+  if (flt && flt.lineConfed) {
+    const lc = lineConfeds(), he = getLang() === 'he', cf = confedOf({ c, y });
+    const fillPos = POS_ORDER.find(pos => lc[pos] === cf && (POS_SLOTS[pos] || []).some(s => !S.xi[s]));
+    const lbl = (he ? CONFED_LABEL : CONFED_LABEL_EN)[cf] || cf || '';
+    $('round-label').textContent = fillPos
+      ? (he ? 'משלים את ' : 'COMPLETING ') + posTitle(fillPos) + ' · ' + lbl
+      : (he ? 'קו חדש, יבשת חדשה · ' : 'NEW LINE, NEW CONTINENT · ') + lbl;
+  }
+  if (flt && flt.oneNationXI) {
+    const he = getLang() === 'he', nat = xiNation();
+    $('round-label').textContent = nat
+      ? (he ? 'נבחרת אחת · ' : 'ONE NATION · ') + c.toUpperCase()
+      : (he ? 'בחר את הנבחרת שלך' : 'CHOOSE YOUR NATION');
+  }
+  if (flt && flt.twoStarXI) {
+    const he = getLang() === 'he', n = xiStars().size;
+    $('round-label').textContent = n === 0 ? (he ? 'בחר את הכוכב שלך' : 'CHOOSE YOUR STAR')
+      : n === 1 ? (he ? 'בחר שחקן שני' : 'CHOOSE YOUR SECOND')
+      : (he ? 'רק שני השחקנים שלך' : 'ONLY YOUR TWO PLAYERS');
+  }
   $('squad-spine').textContent = (c + ' · ' + y).toUpperCase();
   const sf = $('squad-flag');
   sf.src = flagSrc(c);
@@ -656,7 +792,8 @@ function toggleSlotStrip(row, p) {
 function place(p, slot) {
   if (S.xi[slot]) return;
   if ($('s0').classList.contains('active')) track('legend_pick', { name: p.n });
-  S.xi[slot] = p;
+  const f = challengeFlt();
+  S.xi[slot] = (f && f.twoStarXI) ? { ...p } : p;   // two-star repeats must not share one object reference
   S.used.add(p.c);
   if (S.challengePlan) {
     const e = S.challengePlan.find(x => !x.done && (x.n ? x.n === p.c : x.anyOf.includes(p.c)));
@@ -2186,6 +2323,28 @@ function swapEligible(p, slot, usedCountries, usedNames) {
     else if (otherLineDecades(pos).has(dec)) return false;      // single-player line (GK) → no cross-line decade dup
     return true;
   }
+  if (f && f.lineConfed) {                                       // line-confederation day: replacement stays in the line's continent
+    const pos = SLOT_POS_GROUP[slot];
+    if (p.p !== pos) return false;
+    if (usedCountries.has(p.c)) return false;                    // one country per XI still holds
+    if (usedNames.has(p.c + '|' + p.n)) return false;           // never the same human twice
+    const cf = confedOf(p), lcOther = lineConfedExcept(pos, slot);
+    if (cf == null) return false;
+    if (lcOther !== null) { if (cf !== lcOther) return false; }  // multi-player line → must match its confederation
+    else if (otherLineConfeds(pos).has(cf)) return false;       // single-player line (GK) → no cross-line dup
+    return true;
+  }
+  if (f && f.oneNationXI) {                                      // one-nation day: replacement stays in the XI's nation
+    const pos = SLOT_POS_GROUP[slot];
+    if (p.p !== pos) return false;                              // natural position
+    if (usedNames.has(p.c + '|' + p.n)) return false;          // never the same human twice (one country repeats freely)
+    let nat = null; for (const s of SLOTS) { if (s === slot) continue; if (S.xi[s]) { nat = S.xi[s].c; break; } }
+    if (nat && p.c !== nat) return false;
+    return true;
+  }
+  if (f && f.twoStarXI) {                                        // two-star day: replacement must be one of the two anchors
+    return xiStars().has(p.c + '|' + p.n);                      // any year, any slot, repeats allowed
+  }
   if (f && f.pos) { if (!f.pos.includes(p.p)) return false; }   // pos-theme day: themed position, any slot
   else if (SLOT_POS_GROUP[slot] !== p.p) return false;          // normal: player's group must own this slot
   if (!(f && f.rpt) && usedCountries.has(p.c)) return false;    // one player per country (rpt lifts it)
@@ -2193,6 +2352,7 @@ function swapEligible(p, slot, usedCountries, usedNames) {
   if (f && f.cap) { const cap = f.cap[CAP_GROUP(slot)]; if (cap != null && p.r > cap) return false; }
   if (f && f.wideNatural && WIDE_SLOTS.includes(slot)) { if (!(p.sp && p.sp.split('/').includes(slot))) return false; }
   if (f && f.slotEra && f.slotEra[slot] != null) { if (decadeOf(p.y) !== f.slotEra[slot]) return false; }
+  if (f && f.comboSet && !f.comboSet.includes(p.c + '|' + p.y)) return false; // finalists day: replacement from a finalist squad
   return true;
 }
 
@@ -2284,7 +2444,8 @@ function selectSwapSlot(slot) {
 }
 
 function applySwap(slot, opt) {
-  S.xi[slot] = opt;
+  const fSwap = challengeFlt();
+  S.xi[slot] = (fSwap && fSwap.twoStarXI) ? { ...opt } : opt;   // keep repeated anchors as distinct objects
   S.used = new Set(SLOTS.filter(s => S.xi[s]).map(s => S.xi[s].c));
   S.tryNo = (S.tryNo || 0) + 1; // each run-it-back is a fresh attempt on the board
   S.swapCount = (S.swapCount || 0) + 1; // same-team replays used, capped by MAX_SWAP_REPLAYS
