@@ -12,29 +12,48 @@ import { lbConfigured, getNick, setNick, submitDailyScore, fetchBoard, getLeague
 
 const $ = (id) => document.getElementById(id);
 
+// the 11 slot IDS are fixed across every formation — only their LINE membership,
+// label and pitch position change per day. keeping the IDs stable means the match
+// engine (sim.js), the share card and every slot-keyed map keep working untouched.
 const SLOTS = ['GK', 'RB', 'CB1', 'CB2', 'LB', 'CM1', 'CM2', 'RM', 'LM', 'ST1', 'ST2'];
-const POS_SLOTS = {
-  GK: ['GK'],
-  DF: ['RB', 'CB1', 'CB2', 'LB'],
-  MF: ['CM1', 'CM2', 'RM', 'LM'],
-  FW: ['ST1', 'ST2'],
+
+// per-day formation variants. day 22 ("4-3-3 DAY", flt.formation:'433') moves the
+// LM slot from midfield into the front line, so the three attack picks are drawn
+// from the FORWARDS pool and the pitch reads CM/CM/CM behind LW/ST/RW.
+const FORMATIONS = {
+  '442': {
+    POS_SLOTS: { GK: ['GK'], DF: ['RB', 'CB1', 'CB2', 'LB'], MF: ['CM1', 'CM2', 'RM', 'LM'], FW: ['ST1', 'ST2'] },
+    SLOT_LABEL: { GK: 'GK', RB: 'RB', CB1: 'CB 1', CB2: 'CB 2', LB: 'LB', CM1: 'CM 1', CM2: 'CM 2', RM: 'RM', LM: 'LM', ST1: 'ST 1', ST2: 'ST 2' },
+    SLOT_XY: { ST1: [36, 13], ST2: [64, 13], LM: [13, 38], CM1: [38, 42], CM2: [62, 42], RM: [87, 38], LB: [13, 66], CB1: [38, 70], CB2: [62, 70], RB: [87, 66], GK: [50, 90] },
+  },
+  '433': {
+    POS_SLOTS: { GK: ['GK'], DF: ['RB', 'CB1', 'CB2', 'LB'], MF: ['CM1', 'CM2', 'RM'], FW: ['ST1', 'ST2', 'LM'] },
+    SLOT_LABEL: { GK: 'GK', RB: 'RB', CB1: 'CB 1', CB2: 'CB 2', LB: 'LB', CM1: 'CM', CM2: 'CM', RM: 'CM', LM: 'LW', ST1: 'ST', ST2: 'RW' },
+    SLOT_XY: { LM: [16, 14], ST1: [50, 12], ST2: [84, 14], CM1: [28, 44], RM: [50, 42], CM2: [72, 44], LB: [13, 66], CB1: [38, 70], CB2: [62, 70], RB: [87, 66], GK: [50, 90] },
+  },
 };
+
+// active formation (mutated per day by applyFormation). default 4-4-2.
+let POS_SLOTS = FORMATIONS['442'].POS_SLOTS;
+let SLOT_LABEL = FORMATIONS['442'].SLOT_LABEL;
+let SLOT_XY = FORMATIONS['442'].SLOT_XY;
 // reverse lookup slot → position group (used by the Sprint-3 swap eligibility)
-const SLOT_POS_GROUP = Object.fromEntries(Object.entries(POS_SLOTS).flatMap(([pos, slots]) => slots.map(s => [s, pos])));
-const SLOT_LABEL = {
-  GK: 'GK', RB: 'RB', CB1: 'CB 1', CB2: 'CB 2', LB: 'LB',
-  CM1: 'CM 1', CM2: 'CM 2', RM: 'RM', LM: 'LM', ST1: 'ST 1', ST2: 'ST 2',
-};
+let SLOT_POS_GROUP = Object.fromEntries(Object.entries(POS_SLOTS).flatMap(([pos, slots]) => slots.map(s => [s, pos])));
+let CURRENT_FORMATION = '442';
+
+// switch the live formation to match the active challenge (called on every entry to
+// play / board). a day with no flt.formation falls back to 4-4-2.
+function applyFormation(c) {
+  const fm = (c && c.flt && c.flt.formation) || '442';
+  const F = FORMATIONS[fm] || FORMATIONS['442'];
+  POS_SLOTS = F.POS_SLOTS;
+  SLOT_LABEL = F.SLOT_LABEL;
+  SLOT_XY = F.SLOT_XY;
+  SLOT_POS_GROUP = Object.fromEntries(Object.entries(POS_SLOTS).flatMap(([pos, slots]) => slots.map(s => [s, pos])));
+  CURRENT_FORMATION = fm;
+}
 const POS_ORDER = ['GK', 'DF', 'MF', 'FW'];
 const posTitle = (pos) => t('pos_' + pos);
-
-// board slot coordinates, % of pitch (x, y) — GK bottom, STs top
-const SLOT_XY = {
-  ST1: [36, 13], ST2: [64, 13],
-  LM: [13, 38], CM1: [38, 42], CM2: [62, 42], RM: [87, 38],
-  LB: [13, 66], CB1: [38, 70], CB2: [62, 70], RB: [87, 66],
-  GK: [50, 90],
-};
 
 const S = {
   players: [], teams: {}, combos: [], field: null,
@@ -1001,6 +1020,7 @@ function renderBoard() { renderPitchInto('board-slots', false); }
 const LEGEND_MIN_RATING = 92;
 
 function showLegends() {
+  applyFormation(S.challenge);   // set the day's formation before the draw / render
   show('s0');
   const list = $('legend-list');
   list.innerHTML = '';
@@ -1813,6 +1833,7 @@ function renderBoardScopePills(leagues) {
 
 async function openBoard(c, ret) {
   if (!c || !lbConfigured()) return;
+  applyFormation(c);   // render the board pitch in the day's formation
   if (ret) S.boardReturn = ret;
   S.boardChallenge = c;
   const leagues = getLeagues();
@@ -2289,9 +2310,9 @@ function lossWeakLine() {
 function weakestSlot() {
   const sc = computeTeamScores(S.xi);
   const groups = [
-    [sc.defense, ['GK', 'RB', 'CB1', 'CB2', 'LB']],
-    [sc.midfield, ['CM1', 'CM2', 'RM', 'LM']],
-    [sc.attack, ['ST1', 'ST2']],
+    [sc.defense, ['GK', ...POS_SLOTS.DF]],
+    [sc.midfield, POS_SLOTS.MF],
+    [sc.attack, POS_SLOTS.FW],
   ];
   groups.sort((a, b) => a[0] - b[0]);
   let best = null, bestR = Infinity;
@@ -2455,6 +2476,7 @@ function applySwap(slot, opt) {
 
 // ── reset ─────────────────────────────────────────────────────────────────────
 function resetGame() {
+  applyFormation(null);   // back to default 4-4-2 until the next day sets its own
   S.xi = {};
   S.used = new Set();
   S.jokerOffered = false;
@@ -2958,7 +2980,7 @@ function wire() {
   $('btn-share').addEventListener('click', () => {
     track('share', { stage: S.journey ? S.journey.finalStage : 'unknown', daily: S.challenge ? S.challenge.d : undefined });
     const daily = S.challenge ? { day: S.challenge.d, title: chTitle(S.challenge), gist: chGist(S.challenge), ok: S.challengeOk, tries: S.challenge.tries ? S.tryNo : 0, proof: challengeProof(S.challenge, S.journey), mark: challengeMark(S.challenge, S.journey), year: (S.challenge.pickYear && S.challenge.flt && S.challenge.flt.years) ? S.challenge.flt.years[0] : null } : null;
-    shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily, tourneyAchievement(S.journey)).catch(console.error);
+    shareResult(S.xi, S.journey, SLOTS, SLOT_LABEL, surname, flagSrc, S.teamName, daily, tourneyAchievement(S.journey), CURRENT_FORMATION === '433' ? SLOT_XY : null).catch(console.error);
   });
 }
 

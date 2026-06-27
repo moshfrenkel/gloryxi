@@ -379,7 +379,8 @@
   "x_en": "A new formation for one day: three strikers.",
   "x_he": "פורמציה חדשה ליום אחד: שלושה חלוצים.",
   "g_en": "THREE STRIKERS UP FRONT",
-  "g_he": "שלושה חלוצים בחוד"
+  "g_he": "שלושה חלוצים בחוד",
+  "flt": { "formation": "433" }
  },
  {
   "d": 23,

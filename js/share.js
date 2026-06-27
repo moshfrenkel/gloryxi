@@ -131,7 +131,7 @@ export async function shareStory(a, lang) {
   }
 }
 
-export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, teamName, daily, achievement) {
+export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, teamName, daily, achievement, xy) {
   teamName = (teamName || 'YOUR XI').toUpperCase();
   await loadAnton();
   const W = 1080, H = 1350;
@@ -224,7 +224,7 @@ export async function shareResult(xi, J, SLOTS, SLOT_LABEL, surname, flagSrc, te
   const JW = 96;                       // jersey width
   for (const slot of SLOTS) {
     const p = xi[slot];
-    const [cx, cy] = XY[slot];
+    const [cx, cy] = (xy || XY)[slot];
     const px = PX + PW * cx / 100;
     const py = PY + PH * cy / 100;
     const jcy = py - 14;               // jersey sits a touch above the label
