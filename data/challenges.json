@@ -504,11 +504,23 @@
   "date": "2026-07-09",
   "t_en": "THE REAL EIGHT",
   "t_he": "שמונה הגדולות",
-  "x_en": "A player from each real quarter-finalist + 3 free picks.",
-  "x_he": "שחקן מכל אחת מ-8 נבחרות הרבע האמיתי + 3 חופשיים.",
-  "g_en": "REAL QUARTER-FINALISTS",
-  "g_he": "שחקן מכל נבחרת ברבע האמיתי",
-  "todo": "fill req with the 8 real quarter-finalists on July 8"
+  "x_en": "Only the 8 real quarter-finalists. Your whole XI is built from them, and a nation can repeat.",
+  "x_he": "רק 8 נבחרות הרבע האמיתי. כל ההרכב נבנה מהן, ואותה נבחרת יכולה לחזור.",
+  "g_en": "REAL QUARTER-FINALISTS ONLY",
+  "g_he": "רק נבחרות הרבע האמיתי",
+  "flt": {
+   "nations": [
+    "France",
+    "Morocco",
+    "Norway",
+    "England",
+    "Spain",
+    "Belgium",
+    "Switzerland",
+    "Argentina"
+   ],
+   "rpt": true
+  }
  },
  {
   "d": 30,
