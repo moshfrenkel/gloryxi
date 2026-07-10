@@ -4,7 +4,7 @@
    Mechanics: auto-spin (no hold), pick any player then a free compatible slot,
    ratings always visible, one player per country, 1 team-skip + 1 year-skip. */
 
-import { createTournament, mentalityAt, computeTeamScores, computeTeamElo, buildOpponentXiObject, matchProb, advanceProb, titleOdds, koMods } from './sim.js';
+import { createTournament, mentalityAt, computeTeamScores, computeTeamElo, buildOpponentXiObject, matchProb, advanceProb, titleOdds, koMods, setOopFloor } from './sim.js';
 import { shareResult, shareStory } from './share.js';
 import { t, getLang, setLang, applyStatic } from './i18n.js';
 import { kitFor, jerseySVG } from './kits.js';
@@ -44,6 +44,7 @@ let CURRENT_FORMATION = '442';
 // switch the live formation to match the active challenge (called on every entry to
 // play / board). a day with no flt.formation falls back to 4-4-2.
 function applyFormation(c) {
+  setOopFloor(c && c.oopFloor);   // pos-theme days soften the out-of-position penalty
   const fm = (c && c.flt && c.flt.formation) || '442';
   const F = FORMATIONS[fm] || FORMATIONS['442'];
   POS_SLOTS = F.POS_SLOTS;

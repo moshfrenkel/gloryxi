@@ -68,6 +68,13 @@ const OOP_RETENTION = {
   MF: { GK: 0.30, DF: 0.80, MF: 1.00, FW: 0.82 },
   FW: { GK: 0.25, DF: 0.50, MF: 0.75, FW: 1.00 },
 };
+// Pos-theme days (challenges.json `oopFloor`) force whole role groups out of
+// position; with the standard retention every line lands near 30 and the day
+// stops being a game. The floor lifts retention per slot group on those days
+// only — null on regular days, so the calibrated table above is untouched.
+// Applies to the user's XI only (opponents always fill naturally).
+let OOP_FLOOR = null;
+export function setOopFloor(f) { OOP_FLOOR = f || null; }
 // Within-group refinement when the player's real positions (sp, e.g. "RB/CB"
 // from per-match data / Wikidata) are known: exact slot keeps 100%, the
 // mirrored flank (RB↔LB, RM↔LM) keeps 92%, any other in-group slot 88%.
@@ -94,6 +101,10 @@ export function computeTeamScores(xi) {
       else if (natural === slotGroup) {
         retention = (MIRROR_TOKEN[token] && sp.includes(MIRROR_TOKEN[token])) ? 0.92 : 0.88;
       }
+    }
+    if (OOP_FLOOR && natural !== slotGroup) {
+      const fl = OOP_FLOOR[slotGroup];
+      if (fl != null && retention < fl) retention = fl;
     }
     const eff = r * retention;
     effSum += eff;
